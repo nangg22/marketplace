@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "Jelajahi produk terbaik dengan pengalaman belanja yang unik dan menyenangkan di MallPedia.",
 };
 
+import BackButton from "@/components/BackButton";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -19,7 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${spaceGrotesk.variable} ${spaceGrotesk.className}`}>
-      <body className="min-h-screen flex flex-col">{children}</body>
+      <body className="min-h-screen flex flex-col">
+        {children}
+        <BackButton />
+      </body>
     </html>
   );
 }

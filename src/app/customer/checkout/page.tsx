@@ -3,24 +3,68 @@
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { useCartStore } from '@/lib/store';
+import { createOrder } from './actions';
+import { useRouter } from 'next/navigation';
 
 export default function CheckoutPage() {
   const [showQRIS, setShowQRIS] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const router = useRouter();
+  
+  // Ambil state dari Zustand
+  const cartItems = useCartStore((state) => state.items);
+  const clearCart = useCartStore((state) => state.clearCart);
 
-  // MOCK DATA Belanjaan
-  const totalPembayaran = 2000000;
+  const totalPembayaran = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+
   const formatRupiah = (price: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
   };
 
-  const handleSimulasiBayar = () => {
-    setPaymentSuccess(true);
-    setTimeout(() => {
-      alert("🎉 Pembayaran Berhasil! Pesanan sedang diproses penjual.");
-      setShowQRIS(false);
-    }, 1500);
+  const handleSimulasiBayar = async () => {
+    setIsProcessing(true);
+    
+    try {
+      // 1. Simpan ke database menggunakan Server Action
+      await createOrder('Pelanggan MallPedia', cartItems, totalPembayaran);
+      
+      // 2. Kosongkan keranjang & tampilkan sukses
+      setPaymentSuccess(true);
+      clearCart();
+      
+      setTimeout(() => {
+        alert("🎉 Pembayaran Berhasil! Pesanan sedang diproses.");
+        setShowQRIS(false);
+        router.push('/customer/orders'); // Pindah ke riwayat pesanan
+      }, 1500);
+    } catch (error) {
+      alert("❌ Terjadi kesalahan saat memproses pembayaran.");
+      console.error(error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  if (cartItems.length === 0 && !paymentSuccess) {
+    return (
+      <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center p-4">
+          <div className="neo-card p-12 text-center max-w-md w-full animate-bounce-in">
+            <div className="text-6xl mb-4">🛒</div>
+            <h1 className="text-2xl font-extrabold mb-2">Keranjang Kosong</h1>
+            <p className="opacity-60 mb-6 font-medium">Anda tidak memiliki barang untuk di-checkout.</p>
+            <Link href="/products">
+              <button className="neo-btn neo-btn-primary w-full">Kembali Belanja</button>
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
@@ -47,7 +91,7 @@ export default function CheckoutPage() {
                 📍 Alamat Pengiriman
               </h2>
               <div className="bg-[var(--neo-gray)] p-4 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)] mb-4">
-                <p className="font-extrabold text-lg mb-1">John Doe <span className="opacity-60 text-sm font-semibold">(+62 812-3456-7890)</span></p>
+                <p className="font-extrabold text-lg mb-1">Pelanggan MallPedia <span className="opacity-60 text-sm font-semibold">(+62 812-3456-7890)</span></p>
                 <p className="text-sm font-medium opacity-80 leading-relaxed">
                   Jl. Pameran Mall No. 99, Surabaya, Jawa Timur, 60111
                 </p>
@@ -55,6 +99,26 @@ export default function CheckoutPage() {
               <button className="neo-btn neo-btn-outline py-2 text-sm font-bold">
                 ✏️ Ubah Alamat
               </button>
+            </div>
+
+            {/* Daftar Barang */}
+            <div className="neo-card p-6">
+              <h2 className="font-extrabold text-xl mb-4 flex items-center gap-2">
+                📦 Barang yang Dibeli
+              </h2>
+              <div className="space-y-4">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center border-b-[2px] border-dashed border-[var(--neo-black)] border-opacity-20 pb-4 last:border-0 last:pb-0">
+                    <div>
+                      <p className="font-extrabold line-clamp-1">{item.name}</p>
+                      <p className="text-sm font-bold opacity-60">{formatRupiah(item.price)} <span className="text-[var(--neo-primary)]">x{item.quantity}</span></p>
+                    </div>
+                    <div className="font-extrabold text-lg">
+                      {formatRupiah(item.price * item.quantity)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Kartu Metode Pembayaran */}
@@ -84,7 +148,7 @@ export default function CheckoutPage() {
               <div className="neo-zigzag mb-4 opacity-10" />
 
               <div className="flex justify-between mb-3 font-semibold text-sm">
-                <span className="opacity-70">Total Harga (1 Barang)</span>
+                <span className="opacity-70">Total Harga ({cartItems.length} Barang)</span>
                 <span>{formatRupiah(totalPembayaran)}</span>
               </div>
               <div className="flex justify-between mb-5 font-semibold text-sm">
@@ -116,8 +180,9 @@ export default function CheckoutPage() {
           <div className="neo-card max-w-sm w-full p-8 text-center animate-bounce-in relative">
             {/* Close Button */}
             <button 
-              onClick={() => !paymentSuccess && setShowQRIS(false)}
+              onClick={() => !paymentSuccess && !isProcessing && setShowQRIS(false)}
               className="absolute top-[-15px] right-[-15px] w-10 h-10 bg-[var(--neo-pink)] text-white border-[3px] border-[var(--neo-black)] rounded-full font-bold text-xl flex items-center justify-center shadow-[2px_2px_0px_var(--neo-black)] hover:scale-110 transition-transform z-10"
+              disabled={isProcessing}
             >
               ✕
             </button>
@@ -146,9 +211,10 @@ export default function CheckoutPage() {
             ) : (
               <button 
                 onClick={handleSimulasiBayar}
-                className="neo-btn neo-btn-secondary w-full py-3 text-lg"
+                disabled={isProcessing}
+                className="neo-btn neo-btn-secondary w-full py-3 text-lg disabled:opacity-50"
               >
-                ✨ Simulasi Bayar
+                {isProcessing ? "⏳ Memproses..." : "✨ Simulasi Bayar"}
               </button>
             )}
           </div>

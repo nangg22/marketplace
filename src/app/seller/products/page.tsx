@@ -1,10 +1,19 @@
 import { db } from '@/lib/db';
 import { products } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 
 export default async function SellerProductsPage() {
   const data = await db.select().from(products);
+
+  async function handleDelete(formData: FormData) {
+    'use server';
+    const id = formData.get('id') as string;
+    await db.delete(products).where(eq(products.id, id));
+    redirect('/seller/products');
+  }
 
   const formatRupiah = (price: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
@@ -30,9 +39,11 @@ export default async function SellerProductsPage() {
             <p className="font-semibold opacity-60 mt-2">Kelola produk toko Anda di sini.</p>
           </div>
           
-          <button className="neo-btn neo-btn-primary hover-wiggle">
-            <span className="text-xl">➕</span> Tambah Produk
-          </button>
+          <Link href="/seller/products/create">
+            <button className="neo-btn neo-btn-primary hover-wiggle">
+              <span className="text-xl">➕</span> Tambah Produk
+            </button>
+          </Link>
         </div>
 
         {/* List Produk */}
@@ -41,7 +52,9 @@ export default async function SellerProductsPage() {
             <div className="text-6xl mb-4 animate-bounce-in">📭</div>
             <h2 className="text-xl font-bold mb-2">Toko Anda Masih Kosong</h2>
             <p className="opacity-60 mb-6 font-medium">Belum ada produk yang dijual. Ayo tambahkan sekarang!</p>
-            <button className="neo-btn neo-btn-accent">Mulai Jualan</button>
+            <Link href="/seller/products/create">
+              <button className="neo-btn neo-btn-accent">Mulai Jualan</button>
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up stagger-1">
@@ -58,8 +71,13 @@ export default async function SellerProductsPage() {
                   </div>
                   
                   <div className="flex gap-2">
-                    <button className="neo-btn neo-btn-outline flex-1 py-2 text-sm">✏️ Edit</button>
-                    <button className="neo-btn neo-btn-outline flex-1 py-2 text-sm bg-red-100 hover:bg-[var(--neo-pink)] hover:text-white transition-colors">🗑️ Hapus</button>
+                    <Link href={`/seller/products/${item.id}/edit`} className="flex-1">
+                      <button className="neo-btn neo-btn-outline w-full py-2 text-sm">✏️ Edit</button>
+                    </Link>
+                    <form action={handleDelete} className="flex-1">
+                      <input type="hidden" name="id" value={item.id} />
+                      <button type="submit" className="neo-btn neo-btn-outline w-full py-2 text-sm bg-red-100 hover:bg-[var(--neo-pink)] hover:text-white transition-colors">🗑️ Hapus</button>
+                    </form>
                   </div>
                 </div>
               </div>
