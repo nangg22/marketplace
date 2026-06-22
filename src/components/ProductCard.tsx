@@ -1,70 +1,88 @@
-'use client'; // Wajib karena kita sekarang menggunakan interaksi tombol dan Zustand state
+'use client';
 
 import Link from 'next/link';
 import { useCartStore } from '@/lib/store';
 
-// Definisikan tipe data produk (jika Anda pakai TypeScript)
-export default function ProductCard({ product }: { product: any }) {
-  // Panggil fungsi addToCart dari "gudang" Zustand kita
+export default function ProductCard({ product, index = 0 }: { product: any; index?: number }) {
   const addToCart = useCartStore((state) => state.addToCart);
 
   const formatRupiah = (price: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
   };
 
-  // Fungsi saat tombol keranjang diklik
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); // KUNCI PENTING: Mencegah link ke halaman detail terpicu
-    
-    // Kirim data ke global state keranjang
+    e.preventDefault();
+
     addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
-      storeName: 'Toko Penjual', // Sementara hardcode sampai ada tabel toko
+      storeName: 'Toko Penjual',
     });
 
-    // Beri tahu pengunjung bahwa berhasil ditambahkan
     alert(`🛒 "${product.name}" berhasil masuk keranjang!`);
   };
 
+  // Stagger delay class
+  const staggerClass = `stagger-${Math.min(index + 1, 12)}`;
+
   return (
-    <Link href={`/products/${product.id}`} className="group">
-      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-emerald-500/30 transition-all duration-300 h-full flex flex-col">
-        
+    <Link href={`/products/${product.id}`} className="group block" id={`product-${product.id}`}>
+      <div className={`neo-card overflow-hidden h-full flex flex-col animate-slide-up ${staggerClass}`}>
+
         {/* Foto Produk */}
-        <div className="relative aspect-square w-full bg-gray-50 flex items-center justify-center text-gray-400">
+        <div className="relative aspect-square w-full bg-[var(--neo-gray)] flex items-center justify-center overflow-hidden border-b-[3px] border-[var(--neo-black)]">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300" />
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+            />
           ) : (
-            <span className="text-xs">No Image</span>
+            <div className="flex flex-col items-center gap-2 text-[var(--neo-black)] opacity-40">
+              <span className="text-3xl">📦</span>
+              <span className="text-xs font-bold uppercase tracking-wider">No Image</span>
+            </div>
           )}
+
+          {/* Badge Promo Dekoratif */}
+          <div className="absolute top-2 left-2">
+            <span className="neo-sticker bg-[var(--neo-accent)] text-[var(--neo-black)] text-[10px] py-0.5 px-2">
+              🔥 Baru
+            </span>
+          </div>
         </div>
-        
-        <div className="p-4 flex flex-col flex-grow">
-          {/* Judul & Harga */}
-          <h3 className="text-sm text-gray-900 line-clamp-2 mb-1 group-hover:text-emerald-600 transition">
+
+        <div className="p-4 flex flex-col flex-grow bg-white">
+          {/* Judul */}
+          <h3 className="text-sm font-bold text-[var(--neo-black)] line-clamp-2 mb-2 group-hover:text-[var(--neo-primary)] transition-colors duration-200">
             {product.name}
           </h3>
-          <p className="text-base font-bold text-gray-900 mb-2">
-            {formatRupiah(product.price)}
-          </p>
 
-          {/* Info Vendor/Toko */}
-          <div className="flex items-center gap-1.5 border-t border-gray-100 pt-2 text-xs text-gray-500 mb-4">
-            🏢 <span>Toko Penjual</span>
+          {/* Harga — Badge Style */}
+          <div className="mb-3">
+            <span className="inline-block bg-[var(--neo-accent)] text-[var(--neo-black)] font-extrabold text-base px-2 py-0.5 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[1px_1px_0px_var(--neo-black)] rotate-[-1deg]">
+              {formatRupiah(product.price)}
+            </span>
           </div>
 
-          {/* Tombol Add to Cart (Gunakan mt-auto agar posisinya selalu rata di bawah) */}
+          {/* Info Vendor/Toko */}
+          <div className="flex items-center gap-1.5 border-t-[2px] border-dashed border-[var(--neo-black)] border-opacity-20 pt-2 text-xs font-semibold text-[var(--neo-black)] opacity-60 mb-4">
+            <span>🏪</span>
+            <span>Toko Penjual</span>
+          </div>
+
+          {/* Tombol Add to Cart */}
           <div className="mt-auto">
-            <button 
+            <button
               onClick={handleAddToCart}
-              className="w-full bg-emerald-50 text-emerald-600 border border-emerald-600 font-semibold py-2 rounded-lg hover:bg-emerald-600 hover:text-white transition"
+              id={`add-to-cart-${product.id}`}
+              className="neo-btn neo-btn-primary w-full text-sm py-2.5"
             >
+              <span className="group-hover:animate-wiggle inline-block">🛒</span>
               + Keranjang
             </button>
           </div>
-
         </div>
       </div>
     </Link>

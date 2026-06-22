@@ -1,4 +1,4 @@
-'use client'; // Wajib ditambahkan karena kita pakai state interaktif (klik tombol muncul popup)
+'use client';
 
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
@@ -14,103 +14,142 @@ export default function CheckoutPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
   };
 
-  // Fungsi Simulasi Pembayaran Berhasil
   const handleSimulasiBayar = () => {
     setPaymentSuccess(true);
     setTimeout(() => {
-      // Nanti di sini kita arahkan ke halaman riwayat pesanan
-      alert("Pembayaran Berhasil! Pesanan sedang diproses penjual.");
-    }, 1000);
+      alert("🎉 Pembayaran Berhasil! Pesanan sedang diproses penjual.");
+      setShowQRIS(false);
+    }, 1500);
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen text-gray-900">
+    <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
       <Navbar />
       
-      <main className="max-w-4xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-bold mb-6">Checkout Pembayaran</h1>
+      <main className="flex-grow max-w-5xl mx-auto px-4 py-10 w-full relative">
+        <div className="flex items-center gap-3 mb-8 animate-slide-up">
+          <span className="bg-[var(--neo-secondary)] text-white px-3 py-1 border-[3px] border-[var(--neo-black)] rounded-xl shadow-[var(--neo-shadow-sm)] text-2xl font-extrabold rotate-[2deg]">
+            💳
+          </span>
+          <h1 className="text-3xl font-extrabold">Checkout Pembayaran</h1>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* KOLOM KIRI: Alamat & Metode Bayar */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8 animate-slide-up stagger-1">
             
             {/* Kartu Alamat */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h2 className="font-bold text-lg mb-4 border-b pb-2">📍 Alamat Pengiriman</h2>
-              <p className="font-bold">John Doe (+62 812-3456-7890)</p>
-              <p className="text-gray-600 text-sm mt-1">Jl. Pameran Mall No. 99, Surabaya, Jawa Timur, 60111</p>
-              <button className="mt-4 text-emerald-600 text-sm font-bold border border-emerald-600 px-4 py-2 rounded-lg hover:bg-emerald-50">Ubah Alamat</button>
+            <div className="neo-card p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-[var(--neo-accent)] text-[var(--neo-black)] text-xs font-bold px-3 py-1 border-b-[3px] border-l-[3px] border-[var(--neo-black)] rounded-bl-xl">
+                Utama
+              </div>
+              <h2 className="font-extrabold text-xl mb-4 flex items-center gap-2">
+                📍 Alamat Pengiriman
+              </h2>
+              <div className="bg-[var(--neo-gray)] p-4 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)] mb-4">
+                <p className="font-extrabold text-lg mb-1">John Doe <span className="opacity-60 text-sm font-semibold">(+62 812-3456-7890)</span></p>
+                <p className="text-sm font-medium opacity-80 leading-relaxed">
+                  Jl. Pameran Mall No. 99, Surabaya, Jawa Timur, 60111
+                </p>
+              </div>
+              <button className="neo-btn neo-btn-outline py-2 text-sm font-bold">
+                ✏️ Ubah Alamat
+              </button>
             </div>
 
             {/* Kartu Metode Pembayaran */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h2 className="font-bold text-lg mb-4 border-b pb-2">💳 Metode Pembayaran</h2>
-              <div className="flex items-center gap-3 p-4 border border-emerald-500 bg-emerald-50 rounded-lg cursor-pointer">
-                <div className="w-4 h-4 rounded-full bg-emerald-600 flex-shrink-0"></div>
-                <span className="font-bold text-emerald-900">QRIS (Otomatis dicek)</span>
+            <div className="neo-card p-6">
+              <h2 className="font-extrabold text-xl mb-4 flex items-center gap-2">
+                💳 Metode Pembayaran
+              </h2>
+              <div className="p-4 border-[3px] border-[var(--neo-black)] bg-[var(--neo-green)]/10 rounded-lg cursor-pointer flex items-center gap-4 hover-lift transition-transform">
+                <div className="w-6 h-6 rounded-full border-[3px] border-[var(--neo-black)] bg-[var(--neo-green)] shadow-[1px_1px_0px_var(--neo-black)] flex-shrink-0 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-[var(--neo-black)] rounded-full"></div>
+                </div>
+                <div>
+                  <span className="font-extrabold text-lg block">QRIS</span>
+                  <span className="text-xs font-bold opacity-60">Otomatis dicek, cepat & mudah!</span>
+                </div>
+                <div className="ml-auto text-3xl opacity-50">📱</div>
               </div>
             </div>
+
           </div>
 
           {/* KOLOM KANAN: Ringkasan & Tombol */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-fit sticky top-24">
-            <h2 className="font-bold text-lg mb-4 border-b pb-2">Total Belanja</h2>
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600">Total Harga (1 Barang)</span>
-              <span>{formatRupiah(totalPembayaran)}</span>
+          <div className="animate-slide-up stagger-2">
+            <div className="neo-card p-6 sticky top-24">
+              <h2 className="font-extrabold text-xl mb-4">Ringkasan Belanja</h2>
+              
+              <div className="neo-zigzag mb-4 opacity-10" />
+
+              <div className="flex justify-between mb-3 font-semibold text-sm">
+                <span className="opacity-70">Total Harga (1 Barang)</span>
+                <span>{formatRupiah(totalPembayaran)}</span>
+              </div>
+              <div className="flex justify-between mb-5 font-semibold text-sm">
+                <span className="opacity-70">Ongkos Kirim</span>
+                <span className="neo-badge bg-[var(--neo-accent)]">Gratis 🔥</span>
+              </div>
+              
+              <div className="border-t-[3px] border-dashed border-[var(--neo-black)] border-opacity-20 pt-4 flex justify-between items-center mb-6">
+                <span className="font-extrabold text-lg">Total Tagihan</span>
+                <span className="font-extrabold text-xl bg-[var(--neo-primary)] text-white px-2 py-1 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)] rotate-[-2deg]">
+                  {formatRupiah(totalPembayaran)}
+                </span>
+              </div>
+              
+              <button 
+                onClick={() => setShowQRIS(true)}
+                className="neo-btn neo-btn-primary w-full py-4 text-lg hover-wiggle"
+              >
+                💸 Bayar Sekarang
+              </button>
             </div>
-            <div className="flex justify-between mb-4 border-b pb-4">
-              <span className="text-gray-600">Ongkos Kirim</span>
-              <span>Gratis</span>
-            </div>
-            <div className="flex justify-between mb-6">
-              <span className="font-bold text-lg">Total Tagihan</span>
-              <span className="font-bold text-lg text-emerald-600">{formatRupiah(totalPembayaran)}</span>
-            </div>
-            
-            <button 
-              onClick={() => setShowQRIS(true)}
-              className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-lg shadow-emerald-200"
-            >
-              Bayar Sekarang
-            </button>
           </div>
         </div>
       </main>
 
-      {/* POP-UP MODAL QRIS (Animasi Pameran) */}
+      {/* POP-UP MODAL QRIS */}
       {showQRIS && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl animate-fade-in-up">
-            <h3 className="font-bold text-xl mb-2">Scan QRIS</h3>
-            <p className="text-gray-500 text-sm mb-6">Buka aplikasi m-banking atau e-wallet Anda.</p>
+        <div className="fixed inset-0 bg-[var(--neo-black)]/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="neo-card max-w-sm w-full p-8 text-center animate-bounce-in relative">
+            {/* Close Button */}
+            <button 
+              onClick={() => !paymentSuccess && setShowQRIS(false)}
+              className="absolute top-[-15px] right-[-15px] w-10 h-10 bg-[var(--neo-pink)] text-white border-[3px] border-[var(--neo-black)] rounded-full font-bold text-xl flex items-center justify-center shadow-[2px_2px_0px_var(--neo-black)] hover:scale-110 transition-transform z-10"
+            >
+              ✕
+            </button>
+
+            <h3 className="font-extrabold text-2xl mb-2">Scan QRIS</h3>
+            <p className="font-semibold opacity-70 text-sm mb-6">Buka aplikasi m-banking atau e-wallet Anda.</p>
             
-            {/* Simulasi Gambar QR Code */}
-            <div className="bg-gray-100 p-4 rounded-xl inline-block mb-6 border-2 border-dashed border-gray-300">
-              {/* Pakai placeholder gambar QR untuk sementara */}
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SimulasiPembayaranTugasAkhir" alt="QRIS Code" className="mx-auto rounded" />
+            <div className="bg-white p-4 border-[3px] border-[var(--neo-black)] rounded-xl inline-block mb-6 shadow-[4px_4px_0px_var(--neo-primary)] rotate-[1deg] hover:rotate-0 transition-transform">
+              <img 
+                src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SimulasiPembayaranTugasAkhir" 
+                alt="QRIS Code" 
+                className="mx-auto" 
+              />
             </div>
 
-            <p className="font-bold text-2xl text-emerald-600 mb-6">{formatRupiah(totalPembayaran)}</p>
+            <div className="mb-6">
+              <span className="font-extrabold text-3xl bg-[var(--neo-accent)] px-3 py-1 border-[3px] border-[var(--neo-black)] rounded-lg inline-block shadow-[2px_2px_0px_var(--neo-black)]">
+                {formatRupiah(totalPembayaran)}
+              </span>
+            </div>
 
-            {/* Tombol Simulasi untuk Juri saat Demo */}
             {paymentSuccess ? (
-               <div className="bg-green-100 text-green-700 p-3 rounded-lg font-bold">LUNAS! ✅</div>
+               <div className="neo-card bg-[var(--neo-green)] text-[var(--neo-black)] p-4 font-extrabold text-xl animate-pulse-scale">
+                 LUNAS! ✅
+               </div>
             ) : (
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setShowQRIS(false)}
-                  className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-300 transition"
-                >
-                  Batal
-                </button>
-                <button 
-                  onClick={handleSimulasiBayar}
-                  className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition"
-                >
-                  Simulasi Bayar
-                </button>
-              </div>
+              <button 
+                onClick={handleSimulasiBayar}
+                className="neo-btn neo-btn-secondary w-full py-3 text-lg"
+              >
+                ✨ Simulasi Bayar
+              </button>
             )}
           </div>
         </div>

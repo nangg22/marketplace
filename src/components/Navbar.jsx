@@ -1,52 +1,76 @@
-'use client'; // Wajib ditambahkan!
+'use client';
 
 import Link from 'next/link';
 import { useCartStore } from '@/lib/store';
 
 const Navbar = () => {
-  // Mengambil data items dari Zustand
   const cartItems = useCartStore((state) => state.items);
-  
-  // Menghitung total jumlah barang
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-[var(--neo-white)] border-b-[4px] border-[var(--neo-black)] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          
-          <Link href="/" className="flex-shrink-0 flex items-center">
-            <span className="text-2xl font-bold text-emerald-600">Mall<span className="text-gray-900">Pedia</span></span>
+        <div className="flex justify-between items-center h-18">
+
+          {/* Logo */}
+          <Link href="/" className="flex-shrink-0 flex items-center group">
+            <span className="text-2xl font-extrabold tracking-tight">
+              <span className="inline-block bg-[var(--neo-primary)] text-white px-2 py-0.5 border-[3px] border-[var(--neo-black)] rounded-lg shadow-[var(--neo-shadow-sm)] group-hover:rotate-[-2deg] group-hover:scale-105 transition-transform duration-200">
+                Mall
+              </span>
+              <span className="text-[var(--neo-black)] ml-1 group-hover:rotate-[2deg] inline-block transition-transform duration-200">
+                Pedia
+              </span>
+            </span>
           </Link>
 
-          {/* ... Bagian Search Bar biarkan seperti semula ... */}
-          <form action="/search" method="GET" className="flex-1 max-w-xl mx-4 hidden md:block">
+          {/* Search Bar */}
+          <form action="/search" method="GET" className="flex-1 max-w-xl mx-6 hidden md:block">
             <div className="relative">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 name="q"
-                placeholder="Cari barang murah..." 
-                className="w-full h-10 pl-4 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500"
+                id="search-input"
+                placeholder="🔍 Cari barang keren..."
+                className="neo-input pr-12 h-11 text-sm"
               />
-              <button type="submit" className="absolute right-3 top-2 text-gray-400">🔍</button>
+              <button
+                type="submit"
+                id="search-btn"
+                className="absolute right-1 top-1 bottom-1 px-3 bg-[var(--neo-accent)] border-[2px] border-[var(--neo-black)] rounded-lg font-bold text-sm hover:bg-[var(--neo-primary)] hover:text-white transition-colors duration-200"
+              >
+                Cari
+              </button>
             </div>
           </form>
 
-          <div className="flex items-center gap-4">
-            <Link href="/customer/cart" className="relative text-gray-600 hover:text-emerald-600 transition">
-              <span className="text-2xl">🛒</span>
-              {/* Angka badge ini sekarang hidup! */}
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            {/* Cart */}
+            <Link
+              href="/customer/cart"
+              id="cart-link"
+              className="relative neo-btn neo-btn-outline py-2 px-3 hover-wiggle"
+            >
+              <span className="text-xl">🛒</span>
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-2 bg-amber-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                <span className="absolute -top-2 -right-2 neo-badge bg-[var(--neo-pink)] text-white animate-pulse-scale">
                   {totalItems}
                 </span>
               )}
             </Link>
-            
-            <div className="h-6 w-px bg-gray-200 mx-2"></div>
 
-            <Link href="/login">
-              <button className="px-4 py-2 text-sm font-medium text-emerald-600 border border-emerald-600 rounded-lg">Masuk</button>
+            {/* Divider */}
+            <div className="h-8 w-[3px] bg-[var(--neo-black)] rounded-full opacity-20 mx-1" />
+
+            {/* Login Button */}
+            <Link href="/login" id="login-link">
+              <button
+                id="login-btn"
+                className="neo-btn neo-btn-accent font-extrabold text-sm"
+              >
+                ✨ Masuk
+              </button>
             </Link>
           </div>
         </div>
