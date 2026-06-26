@@ -3,17 +3,26 @@ import { products } from '@/lib/schema';
 import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export default function CreateProductPage() {
   async function handleCreate(formData: FormData) {
     'use server';
     
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      throw new Error("Unauthorized");
+    }
+
+    const sellerId = (session.user as any).id;
     const name = formData.get('name') as string;
     const price = parseInt(formData.get('price') as string);
     const description = formData.get('description') as string;
     const imageUrl = formData.get('imageUrl') as string;
 
     await db.insert(products).values({
+      sellerId,
       name,
       price,
       description,

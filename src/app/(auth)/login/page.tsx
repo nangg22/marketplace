@@ -30,9 +30,16 @@ export default function LoginPage() {
       setError('Email atau password salah! Coba lagi ya 😅');
       setLoading(false);
     } else {
-      // Redirect berdasarkan tab yang dipilih
-      if (activeTab === 'seller') {
+      // Ambil data sesi untuk mengetahui role aslinya
+      const sessionRes = await fetch('/api/auth/session');
+      const sessionData = await sessionRes.json();
+      
+      const role = sessionData?.user?.role;
+      
+      if (role === 'seller') {
         router.push('/seller/products');
+      } else if (role === 'admin') {
+        router.push('/admin/dashboard');
       } else {
         router.push('/');
       }

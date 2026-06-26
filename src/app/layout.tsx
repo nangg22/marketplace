@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 };
 
 import BackButton from "@/components/BackButton";
+import Providers from "@/components/Providers";
 
 export default function RootLayout({
   children,
@@ -22,8 +23,10 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${spaceGrotesk.variable} ${spaceGrotesk.className}`}>
       <body className="min-h-screen flex flex-col">
-        {children}
-        <BackButton />
+        <Providers>
+          {children}
+          <BackButton />
+        </Providers>
       </body>
     </html>
   );

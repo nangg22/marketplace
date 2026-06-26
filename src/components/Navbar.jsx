@@ -2,10 +2,14 @@
 
 import Link from 'next/link';
 import { useCartStore } from '@/lib/store';
+import { useSession, signOut } from 'next-auth/react';
 
 const Navbar = () => {
   const cartItems = useCartStore((state) => state.items);
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const { data: session, status } = useSession();
+  
+  const user = session?.user;
 
   return (
     <nav className="bg-[var(--neo-white)] border-b-[4px] border-[var(--neo-black)] sticky top-0 z-50">
@@ -63,15 +67,41 @@ const Navbar = () => {
             {/* Divider */}
             <div className="h-8 w-[3px] bg-[var(--neo-black)] rounded-full opacity-20 mx-1" />
 
-            {/* Login Button */}
-            <Link href="/login" id="login-link">
-              <button
-                id="login-btn"
-                className="neo-btn neo-btn-accent font-extrabold text-sm"
-              >
-                ✨ Masuk
-              </button>
-            </Link>
+            {/* User Info / Login Button */}
+            {status === 'loading' ? (
+               <div className="font-bold text-sm opacity-60">⏳</div>
+            ) : session ? (
+               <div className="flex items-center gap-3">
+                  <div className="hidden sm:flex flex-col text-right">
+                    <span className="text-xs font-bold opacity-60">Halo,</span>
+                    <span className="text-sm font-extrabold max-w-[100px] truncate">{user?.name}</span>
+                  </div>
+                  
+                  {user?.role === 'seller' && (
+                    <Link href="/seller/products">
+                      <button className="neo-btn neo-btn-secondary text-xs px-3 py-1.5 font-bold">
+                        🏪 Dasbor
+                      </button>
+                    </Link>
+                  )}
+                  
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="neo-btn neo-btn-outline border-[var(--neo-pink)] text-[var(--neo-pink)] hover:bg-[var(--neo-pink)] hover:text-white text-xs px-3 py-1.5 font-bold transition-colors"
+                  >
+                    Keluar
+                  </button>
+               </div>
+            ) : (
+              <Link href="/login" id="login-link">
+                <button
+                  id="login-btn"
+                  className="neo-btn neo-btn-accent font-extrabold text-sm"
+                >
+                  ✨ Masuk
+                </button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 
@@ -50,6 +50,10 @@ export async function middleware(request) {
   // ============================
   if (pathname === '/login' || pathname === '/register') {
     if (token) {
+      // Redirect ke halaman sesuai role
+      const role = token.role;
+      if (role === 'seller') return NextResponse.redirect(new URL('/seller/dashboard', request.url));
+      if (role === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       return NextResponse.redirect(new URL('/', request.url));
     }
   }

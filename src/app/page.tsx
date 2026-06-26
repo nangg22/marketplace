@@ -3,10 +3,22 @@ import Footer from '@/components/Footer';
 import ProductsCard from '@/components/ProductCard';
 import { db } from '@/lib/db';
 import { products } from '@/lib/schema';
+import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export default async function HomePage() {
-  // Menarik semua data produk dari Neon Postgres secara real-time
   const realProducts = await db.select().from(products);
+
+  // Cek session untuk tombol "Mulai Jualan"
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as any)?.role;
+
+  // Tentukan href tombol Mulai Jualan:
+  // - Sudah login sebagai seller → langsung ke dashboard
+  // - Belum login / role lain → ke login
+  const mulaiJualanHref = role === 'seller' ? '/seller/dashboard' : '/login';
+  const mulaiJualanLabel = role === 'seller' ? '🏪 Dashboard Saya' : '🔐 Mulai Jualan';
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--neo-bg)]">
@@ -15,24 +27,20 @@ export default async function HomePage() {
       <main className="flex-grow">
         {/* === HERO BANNER === */}
         <section className="relative overflow-hidden bg-[var(--neo-secondary)] border-b-[4px] border-[var(--neo-black)]">
-          {/* Dots pattern overlay */}
           <div className="absolute inset-0 neo-dots-pattern" />
 
-          {/* Floating decorations */}
           <div className="absolute top-6 left-10 text-4xl animate-float opacity-80 select-none hidden lg:block">⭐</div>
           <div className="absolute top-12 right-16 text-3xl animate-float opacity-70 select-none hidden lg:block" style={{ animationDelay: '1s' }}>🎯</div>
           <div className="absolute bottom-8 left-1/4 text-2xl animate-float opacity-60 select-none hidden lg:block" style={{ animationDelay: '0.5s' }}>💎</div>
           <div className="absolute bottom-6 right-1/3 text-3xl animate-spin-slow opacity-50 select-none hidden lg:block">✦</div>
 
           <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-20 text-center">
-            {/* Sticker label */}
             <div className="flex justify-center mb-6 animate-bounce-in">
               <span className="neo-sticker bg-[var(--neo-accent)] text-[var(--neo-black)] text-sm rotate-[-3deg]">
                 🎉 Tugas Akhir — Live Demo
               </span>
             </div>
 
-            {/* Main title */}
             <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4 leading-tight animate-slide-up">
               Selamat Datang di{' '}
               <span className="inline-block bg-[var(--neo-primary)] px-3 py-1 border-[3px] border-[var(--neo-black)] rounded-xl shadow-[var(--neo-shadow)] rotate-[1deg] hover:rotate-[-1deg] transition-transform duration-300">
@@ -51,8 +59,9 @@ export default async function HomePage() {
               <a href="#etalase" className="neo-btn neo-btn-accent text-base px-8 py-3 font-extrabold">
                 🛍️ Lihat Produk
               </a>
-              <a href="/login" className="neo-btn neo-btn-outline text-base px-8 py-3 font-extrabold">
-                🔐 Mulai Jualan
+              {/* ✅ Dinamis berdasarkan role */}
+              <a href={mulaiJualanHref} className="neo-btn neo-btn-outline text-base px-8 py-3 font-extrabold">
+                {mulaiJualanLabel}
               </a>
             </div>
           </div>
@@ -72,18 +81,19 @@ export default async function HomePage() {
 
         {/* === ETALASE PRODUK === */}
         <section id="etalase" className="relative py-12 md:py-16">
-          {/* Grid pattern background */}
           <div className="absolute inset-0 neo-grid-pattern" />
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Section Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="inline-block bg-[var(--neo-pink)] text-white px-3 py-1 border-[3px] border-[var(--neo-black)] rounded-lg shadow-[var(--neo-shadow-sm)] text-2xl font-extrabold rotate-[-2deg]">
-                  🏪
-                </span>
+            <Link
+              href="/products"
+              className="group inline-block cursor-pointer"
+              aria-label="Buka halaman semua produk">
+              <div className="flex items-center gap-4 transition-transform duration-200 group-hover:scale-[1.03]">
+                <div className="border-[3px] border-[var(--neo-black)] bg-[var(--neo-primary)] rounded-xl p-3 shadow-[var(--neo-shadow-sm)] rotate-[-4deg] group-hover:rotate-0 transition-transform duration-200">
+                  🛍️
+                </div>
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--neo-black)]">
+                  <h2 className="text-3xl font-extrabold group-hover:underline">
                     Etalase Produk
                   </h2>
                   <p className="text-sm font-semibold text-[var(--neo-black)] opacity-50">
@@ -91,37 +101,24 @@ export default async function HomePage() {
                   </p>
                 </div>
               </div>
+            </Link>
 
-              {/* Filter chips (dekoratif) */}
-              <div className="flex gap-2 flex-wrap">
-                <button className="neo-btn neo-btn-primary text-xs py-1.5 px-4">
-                  🔥 Semua
-                </button>
-                <button className="neo-btn neo-btn-outline text-xs py-1.5 px-4">
-                  ⭐ Terlaris
-                </button>
-                <button className="neo-btn neo-btn-outline text-xs py-1.5 px-4">
-                  💰 Termurah
-                </button>
-              </div>
+            <div className="flex gap-2 flex-wrap">
+              <button className="neo-btn neo-btn-primary text-xs py-1.5 px-4">🔥 Semua</button>
+              <button className="neo-btn neo-btn-outline text-xs py-1.5 px-4">⭐ Terlaris</button>
+              <button className="neo-btn neo-btn-outline text-xs py-1.5 px-4">💰 Termurah</button>
             </div>
 
-            {/* Zigzag divider */}
             <div className="neo-zigzag mb-8" />
 
-            {/* Render Produk dari Database */}
             {realProducts.length === 0 ? (
               <div className="neo-card text-center py-16 px-6">
                 <div className="text-6xl mb-4 animate-float">🛒</div>
-                <h3 className="text-xl font-extrabold text-[var(--neo-black)] mb-2">
-                  Belum Ada Produk
-                </h3>
+                <h3 className="text-xl font-extrabold text-[var(--neo-black)] mb-2">Belum Ada Produk</h3>
                 <p className="text-sm font-medium text-[var(--neo-black)] opacity-50 mb-6">
                   Silakan tambahkan dari dashboard penjual.
                 </p>
-                <a href="/seller/products" className="neo-btn neo-btn-secondary">
-                  ➕ Tambah Produk
-                </a>
+                <a href="/seller/products" className="neo-btn neo-btn-secondary">➕ Tambah Produk</a>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
@@ -132,7 +129,6 @@ export default async function HomePage() {
             )}
           </div>
         </section>
-
         <Footer />
       </main>
     </div>

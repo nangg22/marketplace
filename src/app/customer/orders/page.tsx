@@ -3,20 +3,29 @@ import { orders } from '@/lib/schema';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export default async function CustomerOrdersPage() {
-  // Ambil data pesanan dari database (urutkan dari yang terbaru)
-  // Catatan: Idealnya difilter berdasarkan userId yang sedang login,
-  // namun karena sistem auth lengkap belum dihubungkan, kita tampilkan semua dulu.
-  const allOrders = await db.select().from(orders).orderBy(desc(orders.id));
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  const customerId = (session.user as any).id;
+
+  // Ambil data pesanan dari database sesuai dengan ID pelanggan
+  const allOrders = await db.select().from(orders).where(eq(orders.customerId, customerId)).orderBy(desc(orders.id));
 
   const formatRupiah = (price: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
   };
 
-  const formatDate = (isoString: string) => {
-    return new Date(isoString).toLocaleDateString('id-ID', {
+  const formatDate = (date: Date | string) => {
+    return new Date(date).toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',

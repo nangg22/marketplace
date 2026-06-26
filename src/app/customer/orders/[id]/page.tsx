@@ -33,8 +33,8 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
   const formatRupiah = (price: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
 
-  const formatDate = (isoString: string) =>
-    new Date(isoString).toLocaleDateString('id-ID', {
+  const formatDate = (date: Date | string) =>
+    new Date(date).toLocaleDateString('id-ID', {
       day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 
@@ -71,8 +71,13 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
           <div className="pt-6">
             <h3 className="font-extrabold text-lg mb-4">Informasi Pengiriman</h3>
             <div className="bg-[var(--neo-gray)] p-4 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)]">
-              <p className="font-extrabold text-lg mb-1">{order.customerName}</p>
-              <p className="text-sm font-medium opacity-80">Jl. Pameran Mall No. 99, Surabaya, Jawa Timur, 60111</p>
+              <p className="font-extrabold text-lg mb-1">{order.recipientName || order.customerName}</p>
+              {order.phone && <p className="text-sm font-medium opacity-80 mb-1">📞 {order.phone}</p>}
+              {order.address && (
+                <p className="text-sm font-medium opacity-80">
+                  {order.address}{order.city ? `, ${order.city}` : ''}{order.province ? `, ${order.province}` : ''}{order.postalCode ? ` ${order.postalCode}` : ''}
+                </p>
+              )}
             </div>
           </div>
         </div>

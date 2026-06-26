@@ -3,10 +3,22 @@ import { products, orders } from '@/lib/schema';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { eq } from 'drizzle-orm';
 
 export default async function SellerDashboardPage() {
-  // Ambil data statistik dari database
-  const allProducts = await db.select().from(products);
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  const sellerId = (session.user as any).id;
+
+  // Hanya ambil produk milik seller yang login
+  const allProducts = await db.select().from(products).where(eq(products.sellerId, sellerId));
   const allOrders = await db.select().from(orders);
 
   const totalRevenue = allOrders.reduce((sum, o) => sum + o.totalAmount, 0);

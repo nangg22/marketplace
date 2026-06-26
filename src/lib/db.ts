@@ -1,6 +1,10 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { neonConfig, Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from 'ws';
 
-// Pastikan DATABASE_URL sudah ada di file .env.local
-const sql = neon(process.env.DATABASE_URL!);
-export const db = drizzle(sql);
+// Gunakan WebSocket untuk koneksi lokal (lebih stabil daripada HTTP fetch)
+neonConfig.webSocketConstructor = ws;
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+
+export const db = drizzle(pool);

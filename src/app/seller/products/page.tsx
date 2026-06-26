@@ -1,30 +1,53 @@
 import { db } from '@/lib/db';
 import { products } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import DeleteButton from '@/components/DeleteButton';
+import Image from 'next/image';
 
 export default async function SellerProductsPage() {
-  const data = await db.select().from(products);
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  const sellerId = (session.user as any).id;
+
+  const data = await db.select().from(products).where(eq(products.sellerId, sellerId));
 
   async function handleDelete(formData: FormData) {
     'use server';
     const id = formData.get('id') as string;
-    await db.delete(products).where(eq(products.id, id));
+
+    const sessionServer = await getServerSession(authOptions);
+    if (!sessionServer?.user) return;
+
+    const currentSellerId = (sessionServer.user as any).id;
+
+    await db.delete(products).where(
+      and(eq(products.id, id), eq(products.sellerId, currentSellerId))
+    );
     redirect('/seller/products');
   }
 
   const formatRupiah = (price: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price);
   };
 
   return (
     <div className="bg-[var(--neo-bg)] min-h-screen flex flex-col text-[var(--neo-black)]">
       <Navbar />
-      
+
       <main className="flex-grow max-w-5xl mx-auto px-4 py-10 w-full relative">
-        {/* Dekorasi Latar */}
         <div className="absolute top-0 right-10 text-6xl animate-float opacity-30 select-none hidden lg:block">🏪</div>
         <div className="absolute bottom-20 left-10 text-5xl animate-float opacity-30 select-none hidden lg:block" style={{ animationDelay: '1s' }}>📦</div>
 
@@ -36,9 +59,11 @@ export default async function SellerProductsPage() {
               </span>
               Produk Saya
             </h1>
-            <p className="font-semibold opacity-60 mt-2">Kelola produk toko Anda di sini.</p>
+            <p className="font-semibold opacity-60 mt-2">
+              {data.length} produk terdaftar
+            </p>
           </div>
-          
+
           <Link href="/seller/products/create">
             <button className="neo-btn neo-btn-primary hover-wiggle">
               <span className="text-xl">➕</span> Tambah Produk
@@ -46,7 +71,6 @@ export default async function SellerProductsPage() {
           </Link>
         </div>
 
-        {/* List Produk */}
         {data.length === 0 ? (
           <div className="neo-card p-12 text-center animate-slide-up stagger-1">
             <div className="text-6xl mb-4 animate-bounce-in">📭</div>
@@ -59,27 +83,74 @@ export default async function SellerProductsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up stagger-1">
             {data.map((item, index) => (
-              <div key={item.id} className={`neo-card flex flex-col p-5 hover-lift stagger-${Math.min(index + 1, 12)}`}>
-                <div className="flex justify-between items-start mb-4">
-                  <h2 className="font-bold text-lg leading-tight line-clamp-2">{item.name}</h2>
-                  <span className="neo-sticker bg-[var(--neo-accent)] text-xs ml-2 rotate-[3deg]">Dijual</span>
+              <div key={item.id} className={`neo-card flex flex-col overflow-hidden hover-lift stagger-${Math.min(index + 1, 12)}`}>
+
+                {/* ✅ Thumbnail Produk */}
+                <div className="relative w-full h-48 bg-[var(--neo-gray)] border-b-[3px] border-[var(--neo-black)]">
+                  {item.imageUrl ? (
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
+                  ) : (
+                    // Placeholder kalau belum ada gambar
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 opacity-40">
+                      <span className="text-4xl">📦</span>
+                      <span className="text-xs font-semibold">Belum ada foto</span>
+                    </div>
+                  )}
+
+                  {/* Badge status aktif/nonaktif */}
+                  <div className="absolute top-2 left-2">
+                    {item.isAvailable ? (
+                      <span className="neo-sticker bg-green-400 text-xs text-white px-2 py-1">
+                        ✅ Aktif
+                      </span>
+                    ) : (
+                      <span className="neo-sticker bg-gray-400 text-xs text-white px-2 py-1">
+                        ⏸️ Nonaktif
+                      </span>
+                    )}
+                  </div>
                 </div>
-                
-                <div className="mt-auto">
-                  <div className="bg-[var(--neo-gray)] border-[2px] border-[var(--neo-black)] rounded-lg px-3 py-2 mb-4 inline-block font-extrabold text-[var(--neo-black)] shadow-[2px_2px_0px_var(--neo-black)]">
+
+                {/* Konten Card */}
+                <div className="flex flex-col flex-grow p-5">
+                  <h2 className="font-bold text-lg leading-tight line-clamp-2 mb-3">
+                    {item.name}
+                  </h2>
+
+                  {/* Harga */}
+                  <div className="bg-[var(--neo-gray)] border-[2px] border-[var(--neo-black)] rounded-lg px-3 py-2 mb-3 inline-block font-extrabold text-[var(--neo-black)] shadow-[2px_2px_0px_var(--neo-black)]">
                     {formatRupiah(item.price)}
                   </div>
-                  
-                  <div className="flex gap-2">
+
+                  {/* ✅ Info stok + rating */}
+                  <div className="flex items-center gap-3 mb-4 text-sm font-semibold opacity-70">
+                    <span>📦 Stok: {item.stock}</span>
+                    {item.ratingCount > 0 && (
+                      <span>⭐ {item.rating.toFixed(1)} ({item.ratingCount})</span>
+                    )}
+                  </div>
+
+                  {/* Tombol Aksi */}
+                  <div className="flex gap-2 mt-auto">
                     <Link href={`/seller/products/${item.id}/edit`} className="flex-1">
                       <button className="neo-btn neo-btn-outline w-full py-2 text-sm">✏️ Edit</button>
                     </Link>
-                    <form action={handleDelete} className="flex-1">
-                      <input type="hidden" name="id" value={item.id} />
-                      <button type="submit" className="neo-btn neo-btn-outline w-full py-2 text-sm bg-red-100 hover:bg-[var(--neo-pink)] hover:text-white transition-colors">🗑️ Hapus</button>
-                    </form>
+                    <div className="flex-1">
+                      <DeleteButton
+                        productId={item.id}
+                        productName={item.name}
+                        action={handleDelete}
+                      />
+                    </div>
                   </div>
                 </div>
+
               </div>
             ))}
           </div>
