@@ -4,29 +4,32 @@ import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { CATEGORIES } from '@/app/products/page';
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const productId = resolvedParams.id;
 
-  // Ambil data produk dari database
   const result = await db.select().from(products).where(eq(products.id, productId)).limit(1);
   const product = result[0];
 
-  // Jika produk tidak ditemukan
-  if (!product) {
-    redirect('/seller/products');
-  }
+  if (!product) redirect('/seller/products');
+
+  const productCategories = CATEGORIES.filter((c) => c.value !== '');
 
   async function handleEdit(formData: FormData) {
     'use server';
     const name = formData.get('name') as string;
     const price = parseInt(formData.get('price') as string);
+    const stock = parseInt(formData.get('stock') as string);
     const description = formData.get('description') as string;
     const imageUrl = formData.get('imageUrl') as string;
+    const category = (formData.get('category') as string) || 'Lainnya';
+    // ✅ Checkbox: ada di formData = true, tidak ada = false
+    const isAvailable = formData.get('isAvailable') === 'on';
 
     await db.update(products)
-      .set({ name, price, description, imageUrl })
+      .set({ name, price, stock, description, imageUrl, category, isAvailable })
       .where(eq(products.id, productId));
 
     redirect('/seller/products');
@@ -54,6 +57,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
         <div className="neo-card p-8 animate-slide-up stagger-2">
           <form action={handleEdit} className="space-y-6">
+
+            {/* Nama Produk */}
             <div>
               <label className="block text-sm font-extrabold mb-1.5 flex justify-between">
                 <span>📌 Nama Produk</span>
@@ -69,24 +74,45 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-extrabold mb-1.5 flex justify-between">
-                <span>💰 Harga (Rp)</span>
-                <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold opacity-50">Rp</span>
+            {/* Harga + Stok — 2 kolom */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-extrabold mb-1.5 flex justify-between">
+                  <span>💰 Harga (Rp)</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold opacity-50">Rp</span>
+                  <input
+                    type="number"
+                    name="price"
+                    required
+                    min="0"
+                    defaultValue={product.price}
+                    className="neo-input pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* ✅ Field stok */}
+              <div>
+                <label className="block text-sm font-extrabold mb-1.5 flex justify-between">
+                  <span>📦 Stok</span>
+                  <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="number"
-                  name="price"
+                  name="stock"
                   required
                   min="0"
-                  defaultValue={product.price}
-                  className="neo-input pl-10"
+                  defaultValue={product.stock}
+                  className="neo-input"
+                  placeholder="0"
                 />
               </div>
             </div>
 
+            {/* Deskripsi */}
             <div>
               <label className="block text-sm font-extrabold mb-1.5">📝 Deskripsi</label>
               <textarea
@@ -98,6 +124,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
               ></textarea>
             </div>
 
+            {/* URL Gambar */}
             <div>
               <label className="block text-sm font-extrabold mb-1.5">🖼️ URL Gambar</label>
               <input
@@ -109,6 +136,45 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
               />
             </div>
 
+            {/* Kategori */}
+            <div>
+              <label className="block text-sm font-extrabold mb-1.5 flex justify-between">
+                <span>📂 Kategori</span>
+                <span className="text-red-500">*</span>
+              </label>
+              <select name="category" required className="neo-input" defaultValue={product.category}>
+                {productCategories.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.icon} {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ✅ Toggle Aktif/Nonaktif */}
+            <div className={`flex items-center justify-between p-4 rounded-xl border-[3px] border-[var(--neo-black)] ${product.isAvailable ? 'bg-green-50' : 'bg-gray-100'}`}>
+              <div>
+                <p className="font-extrabold text-sm">
+                  {product.isAvailable ? '✅ Produk Aktif' : '⏸️ Produk Nonaktif'}
+                </p>
+                <p className="text-xs opacity-60 font-medium mt-0.5">
+                  {product.isAvailable
+                    ? 'Produk terlihat oleh pembeli'
+                    : 'Produk disembunyikan dari pembeli'}
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isAvailable"
+                  defaultChecked={product.isAvailable}
+                  className="sr-only peer"
+                />
+                <div className="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 border-[2px] border-[var(--neo-black)]"></div>
+              </label>
+            </div>
+
+            {/* Tombol Aksi */}
             <div className="pt-4 border-t-[3px] border-dashed border-[var(--neo-black)] border-opacity-20 flex gap-4">
               <Link href="/seller/products" className="w-1/3">
                 <button type="button" className="neo-btn neo-btn-outline w-full py-3.5">
@@ -119,6 +185,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
                 💾 Simpan Perubahan
               </button>
             </div>
+
           </form>
         </div>
       </main>

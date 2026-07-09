@@ -9,14 +9,20 @@ import { authOptions } from '@/lib/auth';
 import DeleteButton from '@/components/DeleteButton';
 import Image from 'next/image';
 
-export default async function SellerProductsPage() {
-  const session = await getServerSession(authOptions);
+import { requireRole } from '@/lib/auth-guard';
 
-  if (!session?.user) {
-    redirect('/login');
+export default async function SellerProductsPage() {
+  const auth = await requireRole(['seller']);
+
+  if (!auth.ok) {
+    if (auth.status === 401) {
+      redirect('/login');
+    } else {
+      redirect('/'); // Redirect if not seller
+    }
   }
 
-  const sellerId = (session.user as any).id;
+  const sellerId = (auth.session?.user as any).id;
 
   const data = await db.select().from(products).where(eq(products.sellerId, sellerId));
 
@@ -24,10 +30,10 @@ export default async function SellerProductsPage() {
     'use server';
     const id = formData.get('id') as string;
 
-    const sessionServer = await getServerSession(authOptions);
-    if (!sessionServer?.user) return;
+    const actionAuth = await requireRole(['seller']);
+    if (!actionAuth.ok) return;
 
-    const currentSellerId = (sessionServer.user as any).id;
+    const currentSellerId = (actionAuth.session?.user as any).id;
 
     await db.delete(products).where(
       and(eq(products.id, id), eq(products.sellerId, currentSellerId))

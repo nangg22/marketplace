@@ -3,27 +3,36 @@
 import Link from 'next/link';
 import { useCartStore } from '@/lib/store';
 
-export default function ProductCard({ product, index = 0 }: { product: any; index?: number }) {
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl?: string | null;
+  sellerName?: string | null;
+}
+
+export default function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const addToCart = useCartStore((state) => state.addToCart);
 
-  const formatRupiah = (price: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
-  };
+  const formatRupiah = (price: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-
     addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
-      storeName: 'Toko Penjual',
+      storeName: product.sellerName || 'Toko Penjual',
     });
-
-    alert(`🛒 "${product.name}" berhasil masuk keranjang!`);
+    // Toast ringan tanpa alert()
+    const msg = document.createElement('div');
+    msg.textContent = `✅ "${product.name}" masuk keranjang!`;
+    msg.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#1A1A2E] text-[#FFD23F] font-extrabold text-sm px-5 py-3 rounded-xl border-[3px] border-[#FFD23F] shadow-lg z-[200] animate-bounce-in';
+    document.body.appendChild(msg);
+    setTimeout(() => msg.remove(), 2500);
   };
 
-  // Stagger delay class
   const staggerClass = `stagger-${Math.min(index + 1, 12)}`;
 
   return (
@@ -45,7 +54,6 @@ export default function ProductCard({ product, index = 0 }: { product: any; inde
             </div>
           )}
 
-          {/* Badge Promo Dekoratif */}
           <div className="absolute top-2 left-2">
             <span className="neo-sticker bg-[var(--neo-accent)] text-[var(--neo-black)] text-[10px] py-0.5 px-2">
               🔥 Baru
@@ -53,23 +61,23 @@ export default function ProductCard({ product, index = 0 }: { product: any; inde
           </div>
         </div>
 
-        <div className="p-4 flex flex-col flex-grow bg-white">
+        <div className="p-3 sm:p-4 flex flex-col flex-grow bg-white">
           {/* Judul */}
           <h3 className="text-sm font-bold text-[var(--neo-black)] line-clamp-2 mb-2 group-hover:text-[var(--neo-primary)] transition-colors duration-200">
             {product.name}
           </h3>
 
-          {/* Harga — Badge Style */}
-          <div className="mb-3">
-            <span className="inline-block bg-[var(--neo-accent)] text-[var(--neo-black)] font-extrabold text-base px-2 py-0.5 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[1px_1px_0px_var(--neo-black)] rotate-[-1deg]">
+          {/* Harga */}
+          <div className="mb-2">
+            <span className="inline-block bg-[var(--neo-accent)] text-[var(--neo-black)] font-extrabold text-sm sm:text-base px-2 py-0.5 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[1px_1px_0px_var(--neo-black)] rotate-[-1deg]">
               {formatRupiah(product.price)}
             </span>
           </div>
 
-          {/* Info Vendor/Toko */}
-          <div className="flex items-center gap-1.5 border-t-[2px] border-dashed border-[var(--neo-black)] border-opacity-20 pt-2 text-xs font-semibold text-[var(--neo-black)] opacity-60 mb-4">
+          {/* Nama Seller */}
+          <div className="flex items-center gap-1.5 border-t-[2px] border-dashed border-[var(--neo-black)] border-opacity-20 pt-2 text-xs font-semibold text-[var(--neo-black)] opacity-60 mb-3">
             <span>🏪</span>
-            <span>Toko Penjual</span>
+            <span className="truncate">{product.sellerName || 'Toko Penjual'}</span>
           </div>
 
           {/* Tombol Add to Cart */}
@@ -77,7 +85,7 @@ export default function ProductCard({ product, index = 0 }: { product: any; inde
             <button
               onClick={handleAddToCart}
               id={`add-to-cart-${product.id}`}
-              className="neo-btn neo-btn-primary w-full text-sm py-2.5"
+              className="neo-btn neo-btn-primary w-full text-xs sm:text-sm py-2"
             >
               <span className="group-hover:animate-wiggle inline-block">🛒</span>
               + Keranjang

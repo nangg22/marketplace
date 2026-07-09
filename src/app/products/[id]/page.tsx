@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { products } from '@/lib/schema';
+import { products, users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -7,12 +7,25 @@ import Link from 'next/link';
 import AddToCartButton from './AddToCartButton';
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  // Await params for Next.js 15+ compatibility
   const resolvedParams = await params;
   const productId = resolvedParams.id;
 
-  // Fetch product from database
-  const result = await db.select().from(products).where(eq(products.id, productId)).limit(1);
+  // Fetch product + nama seller
+  const result = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      description: products.description,
+      imageUrl: products.imageUrl,
+      category: products.category,
+      sellerName: users.name,
+    })
+    .from(products)
+    .leftJoin(users, eq(products.sellerId, users.id))
+    .where(eq(products.id, productId))
+    .limit(1);
+
   const product = result[0];
 
   const formatRupiah = (price: number) => {
@@ -77,7 +90,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col">
             <div className="mb-2">
               <span className="inline-block bg-[var(--neo-pink)] text-white px-3 py-1 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)] text-xs font-bold uppercase tracking-wider rotate-[1deg]">
-                🏪 Toko Penjual
+                🏪 {product.sellerName || 'Toko Penjual'}
               </span>
             </div>
             
@@ -101,12 +114,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </div>
 
             <div className="mt-auto flex flex-col sm:flex-row gap-4">
-              <AddToCartButton product={{ id: product.id, name: product.name, price: product.price }} />
-              <Link href="/customer/checkout" className="flex-1">
-                <button className="neo-btn neo-btn-secondary w-full py-4 text-lg font-extrabold hover-wiggle h-full">
-                  ⚡ Beli Langsung
-                </button>
-              </Link>
+              <AddToCartButton
+                product={{ id: product.id, name: product.name, price: product.price, storeName: product.sellerName || 'Toko Penjual' }}
+              />
+              <AddToCartButton
+                product={{ id: product.id, name: product.name, price: product.price, storeName: product.sellerName || 'Toko Penjual' }}
+                buyNow
+              />
             </div>
           </div>
         </div>

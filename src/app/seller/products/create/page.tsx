@@ -1,133 +1,93 @@
-import { db } from '@/lib/db';
-import { products } from '@/lib/schema';
-import { redirect } from 'next/navigation';
-import Navbar from '@/components/Navbar';
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { UploadButton } from '@/utils/uploadthing';
+import { addProductAction } from '../actions';
+import "@uploadthing/react/styles.css"; // Wajib agar tombolnya rapi
 
 export default function CreateProductPage() {
-  async function handleCreate(formData: FormData) {
-    'use server';
-    
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      throw new Error("Unauthorized");
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Fungsi saat form disubmit
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!imageUrl) {
+      alert("⚠️ Wajib upload gambar produk dulu ya!");
+      return;
     }
-
-    const sellerId = (session.user as any).id;
-    const name = formData.get('name') as string;
-    const price = parseInt(formData.get('price') as string);
-    const description = formData.get('description') as string;
-    const imageUrl = formData.get('imageUrl') as string;
-
-    await db.insert(products).values({
-      sellerId,
-      name,
-      price,
-      description,
-      imageUrl: imageUrl || 'https://via.placeholder.com/300?text=No+Image', // Default image jika kosong
-    });
-
-    redirect('/seller/products');
-  }
+    const formData = new FormData(e.currentTarget);
+    await addProductAction(formData, imageUrl);
+  };
 
   return (
-    <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow max-w-3xl mx-auto px-4 py-10 w-full relative">
-        {/* Dekorasi Latar */}
-        <div className="absolute top-10 right-0 text-5xl animate-float opacity-30 select-none hidden md:block">✨</div>
-        <div className="absolute bottom-20 left-0 text-4xl animate-float opacity-30 select-none hidden md:block" style={{ animationDelay: '0.8s' }}>📦</div>
-
-        <div className="mb-6 animate-slide-up">
-          <Link href="/seller/products" className="neo-link text-sm font-bold opacity-60 hover:opacity-100">
-            ← Kembali ke Dashboard
+    <div className="min-h-screen bg-[#FFF4E0] p-8 font-sans">
+      <div className="max-w-2xl mx-auto bg-white p-8 border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+        
+        <div className="flex justify-between items-center mb-8 border-b-4 border-black pb-4">
+          <h1 className="text-3xl font-black text-black tracking-tight">📦 Tambah Produk</h1>
+          <Link href="/seller/products">
+            <button className="bg-gray-200 text-black px-4 py-2 font-bold border-2 border-black rounded-lg hover:translate-y-1 hover:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+              Batal
+            </button>
           </Link>
         </div>
 
-        <div className="flex items-center gap-3 mb-8 animate-slide-up stagger-1">
-          <span className="bg-[var(--neo-secondary)] text-white px-3 py-1 border-[3px] border-[var(--neo-black)] rounded-xl shadow-[var(--neo-shadow-sm)] text-2xl font-extrabold rotate-[-2deg]">
-            ➕
-          </span>
-          <h1 className="text-3xl font-extrabold">Tambah Produk Baru</h1>
-        </div>
-
-        <div className="neo-card p-8 animate-slide-up stagger-2">
-          <form action={handleCreate} className="space-y-6">
-            <div>
-              <label className="block text-sm font-extrabold mb-1.5 flex justify-between">
-                <span>📌 Nama Produk</span>
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                className="neo-input"
-                placeholder="Contoh: Sepatu Sneakers Neobrutalis"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-extrabold mb-1.5 flex justify-between">
-                <span>💰 Harga (Rp)</span>
-                <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold opacity-50">Rp</span>
-                <input
-                  type="number"
-                  name="price"
-                  required
-                  min="0"
-                  className="neo-input pl-10"
-                  placeholder="250000"
-                />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          
+          {/* AREA UPLOAD GAMBAR */}
+          <div className="bg-[#E8F0FE] border-4 border-black p-6 rounded-xl flex flex-col items-center justify-center min-h-[200px]">
+            {imageUrl ? (
+              <div className="relative w-full">
+                <img src={imageUrl} alt="Preview" className="w-full h-48 object-cover rounded-lg border-2 border-black mb-4" />
+                <button type="button" onClick={() => setImageUrl("")} className="absolute top-2 right-2 bg-red-400 text-white font-bold px-3 py-1 border-2 border-black rounded">Ganti</button>
               </div>
-            </div>
+            ) : (
+              <>
+                <p className="font-bold mb-4">Upload Foto Produk (Max 4MB)</p>
+                <UploadButton
+                  endpoint="imageUploader"
+                  onUploadBegin={() => setIsUploading(true)}
+                  onClientUploadComplete={(res) => {
+                    setImageUrl(res[0].url);
+                    setIsUploading(false);
+                    alert("✅ Gambar berhasil diupload!");
+                  }}
+                  onUploadError={(error: Error) => {
+                    setIsUploading(false);
+                    alert(`❌ ERROR: ${error.message}`);
+                  }}
+                />
+              </>
+            )}
+          </div>
 
-            <div>
-              <label className="block text-sm font-extrabold mb-1.5">
-                📝 Deskripsi
-              </label>
-              <textarea
-                name="description"
-                rows={4}
-                className="neo-input resize-none"
-                placeholder="Jelaskan produk Anda sedetail mungkin..."
-              ></textarea>
-            </div>
+          <div>
+            <label className="block text-black font-bold mb-2">Nama Produk</label>
+            <input name="name" required placeholder="Contoh: Sepatu Sneakers" 
+              className="w-full bg-[#E8F0FE] border-4 border-black p-4 rounded-xl font-bold placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-yellow-400" />
+          </div>
+          
+          <div>
+            <label className="block text-black font-bold mb-2">Harga (Rp)</label>
+            <input name="price" type="number" required placeholder="250000" 
+              className="w-full bg-[#E8F0FE] border-4 border-black p-4 rounded-xl font-bold placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-yellow-400" />
+          </div>
+          
+          <div>
+            <label className="block text-black font-bold mb-2">Deskripsi</label>
+            <textarea name="description" rows={4} placeholder="Jelaskan detail produkmu..." 
+              className="w-full bg-[#E8F0FE] border-4 border-black p-4 rounded-xl font-bold placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-yellow-400" />
+          </div>
 
-            <div>
-              <label className="block text-sm font-extrabold mb-1.5">
-                🖼️ URL Gambar (Opsional)
-              </label>
-              <input
-                type="url"
-                name="imageUrl"
-                className="neo-input"
-                placeholder="https://example.com/image.jpg"
-              />
-              <p className="text-xs font-semibold opacity-50 mt-1">
-                Kosongkan jika Anda belum memiliki gambar. Kami akan menggunakan gambar *placeholder*.
-              </p>
-            </div>
-
-            <div className="pt-4 border-t-[3px] border-dashed border-[var(--neo-black)] border-opacity-20 flex gap-4">
-              <Link href="/seller/products" className="w-1/3">
-                <button type="button" className="neo-btn neo-btn-outline w-full py-3.5">
-                  Batal
-                </button>
-              </Link>
-              <button type="submit" className="neo-btn neo-btn-primary flex-1 py-3.5 font-extrabold hover-wiggle">
-                🚀 Terbitkan Produk
-              </button>
-            </div>
-          </form>
-        </div>
-      </main>
+          <button type="submit" disabled={isUploading}
+            className={`w-full text-black text-xl font-black py-4 border-4 border-black rounded-xl transition-all mt-4 
+              ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#FF90E8] hover:bg-[#FF70E0] hover:translate-y-1 hover:shadow-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]'}`}>
+            SIMPAN PRODUK
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

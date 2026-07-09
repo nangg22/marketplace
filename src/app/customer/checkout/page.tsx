@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useCartStore } from '@/lib/store';
 import { createOrder, getMyShippingAddress, saveShippingAddress } from './actions';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 type Address = {
   recipientName: string;
@@ -17,7 +18,9 @@ type Address = {
 };
 
 export default function CheckoutPage() {
-  const [showQRIS, setShowQRIS] = useState(false);
+  const { data: session, status } = useSession();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'qris' | 'credit' | 'cod'>('qris');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -79,7 +82,7 @@ export default function CheckoutPage() {
   const handleSimulasiBayar = async () => {
     if (!address?.recipientName) {
       alert('❌ Lengkapi alamat pengiriman terlebih dahulu!');
-      setShowQRIS(false);
+      setShowPaymentModal(false);
       setShowAddressForm(true);
       return;
     }
@@ -92,7 +95,7 @@ export default function CheckoutPage() {
         quantity: item.quantity,
       }));
 
-      const result = (await createOrder(itemsForAction, 'qris')) as any;
+      const result = (await createOrder(itemsForAction, paymentMethod)) as any;
 
       if (!result?.success) {
         alert(`❌ ${result?.error || 'Terjadi kesalahan.'}`);
@@ -106,8 +109,8 @@ export default function CheckoutPage() {
       clearCart();
 
       setTimeout(() => {
-        alert('🎉 Pembayaran Berhasil! Pesanan sedang diproses.');
-        setShowQRIS(false);
+        alert('🎉 Pesanan Berhasil Diproses!');
+        setShowPaymentModal(false);
         router.push('/customer/orders');
       }, 1500);
     } catch (error) {
@@ -117,6 +120,45 @@ export default function CheckoutPage() {
       setIsProcessing(false);
     }
   };
+  if (status === 'loading') {
+    return (
+      <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center p-4">
+          <div className="text-xl font-extrabold animate-pulse">⏳ Memuat...</div>
+        </main>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center p-4">
+          <div className="neo-card p-12 text-center max-w-md w-full animate-bounce-in">
+            <div className="text-6xl mb-4">🔒</div>
+            <h1 className="text-2xl font-extrabold mb-2">Login Diperlukan</h1>
+            <p className="opacity-60 mb-6 font-medium">
+              Anda harus login atau membuat akun terlebih dahulu untuk melakukan checkout.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Link href="/login?callbackUrl=/customer/checkout">
+                <button className="neo-btn neo-btn-primary w-full py-3">
+                  Masuk Sekarang
+                </button>
+              </Link>
+              <Link href="/register">
+                <button className="neo-btn neo-btn-outline w-full py-3">
+                  Buat Akun Baru
+                </button>
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (cartItems.length === 0 && !paymentSuccess) {
     return (
@@ -251,17 +293,36 @@ export default function CheckoutPage() {
               <h2 className="font-extrabold text-xl mb-4 flex items-center gap-2">
                 💳 Metode Pembayaran
               </h2>
-              <div className="p-4 border-[3px] border-[var(--neo-black)] bg-[var(--neo-green)]/10 rounded-lg flex items-center gap-4 hover-lift transition-transform">
-                <div className="w-6 h-6 rounded-full border-[3px] border-[var(--neo-black)] bg-[var(--neo-green)] shadow-[1px_1px_0px_var(--neo-black)] flex-shrink-0 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-[var(--neo-black)] rounded-full"></div>
-                </div>
-                <div>
-                  <span className="font-extrabold text-lg block">QRIS</span>
-                  <span className="text-xs font-bold opacity-60">
-                    Otomatis dicek, cepat &amp; mudah!
-                  </span>
-                </div>
-                <div className="ml-auto text-3xl opacity-50">📱</div>
+              <div className="flex flex-col gap-4">
+                {/* QRIS */}
+                <label className={`p-4 border-[3px] border-[var(--neo-black)] rounded-lg flex items-center gap-4 cursor-pointer hover-lift transition-transform ${paymentMethod === 'qris' ? 'bg-[var(--neo-green)]/20 shadow-[4px_4px_0px_var(--neo-green)]' : 'bg-[var(--neo-gray)]'}`}>
+                  <input type="radio" name="paymentMethod" value="qris" checked={paymentMethod === 'qris'} onChange={() => setPaymentMethod('qris')} className="w-5 h-5 accent-[var(--neo-black)] flex-shrink-0" />
+                  <div>
+                    <span className="font-extrabold text-lg block">QRIS</span>
+                    <span className="text-xs font-bold opacity-60">Otomatis dicek, cepat &amp; mudah!</span>
+                  </div>
+                  <div className="ml-auto text-3xl opacity-50 flex-shrink-0">📱</div>
+                </label>
+
+                {/* Kartu Debit/Kredit */}
+                <label className={`p-4 border-[3px] border-[var(--neo-black)] rounded-lg flex items-center gap-4 cursor-pointer hover-lift transition-transform ${paymentMethod === 'credit' ? 'bg-[var(--neo-blue)]/20 shadow-[4px_4px_0px_var(--neo-blue)]' : 'bg-[var(--neo-gray)]'}`}>
+                  <input type="radio" name="paymentMethod" value="credit" checked={paymentMethod === 'credit'} onChange={() => setPaymentMethod('credit')} className="w-5 h-5 accent-[var(--neo-black)] flex-shrink-0" />
+                  <div>
+                    <span className="font-extrabold text-lg block">Kartu Debit/Kredit</span>
+                    <span className="text-xs font-bold opacity-60">Pembayaran instan via kartu.</span>
+                  </div>
+                  <div className="ml-auto text-3xl opacity-50 flex-shrink-0">💳</div>
+                </label>
+
+                {/* COD */}
+                <label className={`p-4 border-[3px] border-[var(--neo-black)] rounded-lg flex items-center gap-4 cursor-pointer hover-lift transition-transform ${paymentMethod === 'cod' ? 'bg-[var(--neo-accent)]/20 shadow-[4px_4px_0px_var(--neo-accent)]' : 'bg-[var(--neo-gray)]'}`}>
+                  <input type="radio" name="paymentMethod" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} className="w-5 h-5 accent-[var(--neo-black)] flex-shrink-0" />
+                  <div>
+                    <span className="font-extrabold text-lg block">Cash on Delivery (COD)</span>
+                    <span className="text-xs font-bold opacity-60">Bayar saat pesanan tiba.</span>
+                  </div>
+                  <div className="ml-auto text-3xl opacity-50 flex-shrink-0">📦</div>
+                </label>
               </div>
             </div>
           </div>
@@ -292,7 +353,7 @@ export default function CheckoutPage() {
               </div>
 
               <button
-                onClick={() => setShowQRIS(true)}
+                onClick={() => setShowPaymentModal(true)}
                 disabled={!address?.recipientName}
                 className="neo-btn neo-btn-primary w-full py-4 text-lg hover-wiggle disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -308,30 +369,55 @@ export default function CheckoutPage() {
         </div>
       </main>
 
-      {/* POP-UP MODAL QRIS */}
-      {showQRIS && (
+      {/* POP-UP MODAL */}
+      {showPaymentModal && (
         <div className="fixed inset-0 bg-[var(--neo-black)]/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="neo-card max-w-sm w-full p-8 text-center animate-bounce-in relative">
             <button
-              onClick={() => !paymentSuccess && !isProcessing && setShowQRIS(false)}
+              onClick={() => !paymentSuccess && !isProcessing && setShowPaymentModal(false)}
               className="absolute top-[-15px] right-[-15px] w-10 h-10 bg-[var(--neo-pink)] text-white border-[3px] border-[var(--neo-black)] rounded-full font-bold text-xl flex items-center justify-center shadow-[2px_2px_0px_var(--neo-black)] hover:scale-110 transition-transform z-10"
               disabled={isProcessing}
             >
               ✕
             </button>
 
-            <h3 className="font-extrabold text-2xl mb-2">Scan QRIS</h3>
-            <p className="font-semibold opacity-70 text-sm mb-6">
-              Buka aplikasi m-banking atau e-wallet Anda.
-            </p>
+            {paymentMethod === 'qris' && (
+              <>
+                <h3 className="font-extrabold text-2xl mb-2">Scan QRIS</h3>
+                <p className="font-semibold opacity-70 text-sm mb-6">
+                  Buka aplikasi m-banking atau e-wallet Anda.
+                </p>
+                <div className="bg-white p-4 border-[3px] border-[var(--neo-black)] rounded-xl inline-block mb-6 shadow-[4px_4px_0px_var(--neo-primary)] rotate-[1deg] hover:rotate-0 transition-transform">
+                  <img
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SimulasiPembayaranTugasAkhir"
+                    alt="QRIS Code"
+                    className="mx-auto"
+                  />
+                </div>
+              </>
+            )}
 
-            <div className="bg-white p-4 border-[3px] border-[var(--neo-black)] rounded-xl inline-block mb-6 shadow-[4px_4px_0px_var(--neo-primary)] rotate-[1deg] hover:rotate-0 transition-transform">
-              <img
-                src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SimulasiPembayaranTugasAkhir"
-                alt="QRIS Code"
-                className="mx-auto"
-              />
-            </div>
+            {paymentMethod === 'credit' && (
+              <>
+                <h3 className="font-extrabold text-2xl mb-2">Debit / Kredit</h3>
+                <p className="font-semibold opacity-70 text-sm mb-6">Masukkan detail kartu Anda.</p>
+                <div className="flex flex-col gap-3 mb-6 text-left">
+                  <input type="text" placeholder="Nomor Kartu" className="neo-input" defaultValue="4111 1111 1111 1111" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="text" placeholder="MM/YY" className="neo-input" defaultValue="12/26" />
+                    <input type="text" placeholder="CVV" className="neo-input" defaultValue="123" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {paymentMethod === 'cod' && (
+              <>
+                <h3 className="font-extrabold text-2xl mb-2">Konfirmasi COD</h3>
+                <p className="font-semibold opacity-70 text-sm mb-6">Siapkan uang pas saat kurir tiba di alamat Anda.</p>
+                <div className="text-6xl mb-6">🛵</div>
+              </>
+            )}
 
             <div className="mb-6">
               <span className="font-extrabold text-3xl bg-[var(--neo-accent)] px-3 py-1 border-[3px] border-[var(--neo-black)] rounded-lg inline-block shadow-[2px_2px_0px_var(--neo-black)]">
@@ -341,7 +427,7 @@ export default function CheckoutPage() {
 
             {paymentSuccess ? (
               <div className="neo-card bg-[var(--neo-green)] text-[var(--neo-black)] p-4 font-extrabold text-xl animate-pulse-scale">
-                LUNAS! ✅
+                {paymentMethod === 'cod' ? 'PESANAN DIBUAT! ✅' : 'LUNAS! ✅'}
               </div>
             ) : (
               <button
@@ -349,7 +435,7 @@ export default function CheckoutPage() {
                 disabled={isProcessing}
                 className="neo-btn neo-btn-secondary w-full py-3 text-lg disabled:opacity-50"
               >
-                {isProcessing ? '⏳ Memproses...' : '✨ Simulasi Bayar'}
+                {isProcessing ? '⏳ Memproses...' : (paymentMethod === 'cod' ? '✨ Konfirmasi Pesanan' : '✨ Simulasi Bayar')}
               </button>
             )}
           </div>

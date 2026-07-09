@@ -1,0 +1,17 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "executionArgs": {
+    "projectName": "marketplace",
+    "projectPath": "c:\\marketplace",
+    "testIds": [],
+    "additionalInstruction": "Jalankan semua pengujian untuk website marketplace",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-Zrlsp-qG1WbFVl4ANE6EyIE1aL8l-wp48miYNV5qmr5f-HZIeXo6q_XW9uWvsVD3AjWwymajE5KVcy3Xdn3KvAzql8eYqOM34WCeS3Y3FwetvaBl3ryeYTW1xK5nDvPOje8"
+    }
+  },
+  "serverPort": 58103
+}

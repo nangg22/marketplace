@@ -17,6 +17,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: '*.ufs.sh', // Tanda bintang (*) artinya semua subdomain ufs.sh diizinkan!
+      },
+      {
+        protocol: 'https',
+        hostname: 'utfs.io', // Ini adalah domain tempat UploadThing menyimpan gambar
+      },
+      {
+        protocol: 'https',
         hostname: 'imgur.com',
       },
       {

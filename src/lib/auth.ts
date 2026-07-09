@@ -34,6 +34,9 @@ export const authOptions: NextAuthOptions = {
 
         if (!isPasswordValid) return null;
 
+        // Cek apakah user di-ban oleh admin
+        if (user.isBanned) return null;
+
         return {
           id: user.id.toString(),
           name: user.name,
@@ -44,7 +47,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -52,10 +55,10 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
 
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
       }
       return session;
     },

@@ -1,0 +1,205 @@
+version: "2"
+type: frontend
+tech_stack:
+  - TypeScript
+  - Next.js 16
+  - React 19
+  - Tailwind CSS
+  - Drizzle ORM
+  - Neon PostgreSQL
+  - NextAuth
+  - UploadThing
+  - Zustand
+routes:
+  - path: /
+    file: src/app/page.tsx
+    auth_required: false
+    description: Home page with product showcase
+  - path: /login
+    file: src/app/(auth)/login/page.tsx
+    auth_required: false
+    description: User login page
+  - path: /register
+    file: src/app/(auth)/register/page.tsx
+    auth_required: false
+    description: User registration page
+  - path: /products
+    file: src/app/products/page.tsx
+    auth_required: false
+    description: Products listing page with filters
+  - path: /products/[id]
+    file: src/app/products/[id]/page.tsx
+    auth_required: false
+    description: Product detail page
+  - path: /search
+    file: src/app/search/page.tsx
+    auth_required: false
+    description: Product search page
+  - path: /customer/cart
+    file: src/app/customer/cart/page.tsx
+    auth_required: true
+    description: Shopping cart page
+  - path: /customer/checkout
+    file: src/app/customer/checkout/page.tsx
+    auth_required: true
+    description: Checkout page
+  - path: /customer/orders
+    file: src/app/customer/orders/page.tsx
+    auth_required: true
+    description: Customer orders list
+  - path: /customer/orders/[id]
+    file: src/app/customer/orders/[id]/page.tsx
+    auth_required: true
+    description: Customer order detail
+  - path: /customer/profile
+    file: src/app/customer/profile/page.tsx
+    auth_required: true
+    description: Customer profile page
+  - path: /seller/dashboard
+    file: src/app/seller/dashboard/page.tsx
+    auth_required: true
+    description: Seller dashboard
+  - path: /seller/products
+    file: src/app/seller/products/page.tsx
+    auth_required: true
+    description: Seller products management
+  - path: /seller/products/create
+    file: src/app/seller/products/create/page.tsx
+    auth_required: true
+    description: Create new product
+  - path: /seller/products/[id]/edit
+    file: src/app/seller/products/[id]/edit/page.tsx
+    auth_required: true
+    description: Edit existing product
+  - path: /seller/orders
+    file: src/app/seller/orders/page.tsx
+    auth_required: true
+    description: Seller orders management
+  - path: /admin/dashboard
+    file: src/app/admin/dashboard/page.tsx
+    auth_required: true
+    description: Admin dashboard
+  - path: /admin/products
+    file: src/app/admin/products/page.tsx
+    auth_required: true
+    description: Admin products management
+  - path: /admin/users
+    file: src/app/admin/users/page.tsx
+    auth_required: true
+    description: Admin users management
+  - path: /admin/transactions
+    file: src/app/admin/transactions/page.tsx
+    auth_required: true
+    description: Admin transactions management
+features:
+  - name: User Authentication
+    description: Login and register with email/password credentials
+    files:
+      - src/app/(auth)/login/page.tsx
+      - src/app/(auth)/register/page.tsx
+      - src/lib/auth.ts
+      - src/app/api/auth/[...nextauth]/route.ts
+    entry_route: /login
+    user_interactions:
+      - Fill email input field
+      - Fill password input field
+      - Click Login/Register button to submit
+      - See error message on invalid credentials
+    api_calls:
+      - method: POST
+        endpoint: /api/auth/signin
+    auth_required: false
+  - name: Product Browsing
+    description: Browse and search products
+    files:
+      - src/app/page.tsx
+      - src/app/products/page.tsx
+      - src/app/products/[id]/page.tsx
+      - src/app/search/page.tsx
+      - src/components/ProductCard.tsx
+    entry_route: /
+    user_interactions:
+      - View product list on home page
+      - Filter products by category
+      - Search for products
+      - Click on product to view details
+    api_calls: []
+    auth_required: false
+  - name: Shopping Cart
+    description: Add products to cart and manage cart
+    files:
+      - src/app/customer/cart/page.tsx
+      - src/app/products/[id]/AddToCartButton.tsx
+      - src/lib/store.ts
+    entry_route: /customer/cart
+    user_interactions:
+      - Add product to cart from product detail page
+      - View cart items
+      - Remove items from cart
+      - Update item quantities
+    api_calls: []
+    auth_required: true
+  - name: Checkout Process
+    description: Complete purchase and make payment
+    files:
+      - src/app/customer/checkout/page.tsx
+      - src/app/customer/checkout/actions.ts
+      - src/lib/midtrans.ts
+    entry_route: /customer/checkout
+    user_interactions:
+      - Review cart items
+      - Enter shipping information
+      - Complete payment via Midtrans
+    api_calls:
+      - method: POST
+        endpoint: /api/webhook/payment
+    auth_required: true
+  - name: Seller Product Management
+    description: Create, edit, and delete products
+    files:
+      - src/app/seller/products/page.tsx
+      - src/app/seller/products/create/page.tsx
+      - src/app/seller/products/[id]/edit/page.tsx
+      - src/app/seller/products/actions.ts
+      - src/app/admin/components/ProductActionButtons.tsx
+    entry_route: /seller/products
+    user_interactions:
+      - View list of own products
+      - Create new product with details and image
+      - Edit existing product
+      - Delete product with confirmation
+    api_calls: []
+    auth_required: true
+  - name: Order Management
+    description: View and manage orders
+    files:
+      - src/app/customer/orders/page.tsx
+      - src/app/customer/orders/[id]/page.tsx
+      - src/app/seller/orders/page.tsx
+      - src/app/admin/transactions/page.tsx
+      - src/app/admin/components/OrderActionButtons.tsx
+    entry_route: /customer/orders
+    user_interactions:
+      - View order history (customer)
+      - View order details
+      - Manage orders (seller/admin)
+    api_calls: []
+    auth_required: true
+  - name: Admin Management
+    description: Manage users, products, and transactions
+    files:
+      - src/app/admin/dashboard/page.tsx
+      - src/app/admin/products/page.tsx
+      - src/app/admin/users/page.tsx
+      - src/app/admin/transactions/page.tsx
+      - src/app/admin/components/UserActionButtons.tsx
+      - src/app/admin/actions.ts
+    entry_route: /admin/dashboard
+    user_interactions:
+      - View admin dashboard
+      - Manage users
+      - Manage products
+      - Manage transactions
+    api_calls: []
+    auth_required: true
+known_limitations: []

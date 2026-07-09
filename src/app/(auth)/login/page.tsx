@@ -1,15 +1,19 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { signIn, getSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justRegistered = searchParams.get('registered') === '1';
+  const tabParam = searchParams.get('tab');
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'customer' | 'seller'>('customer');
+  const [activeTab, setActiveTab] = useState<'customer' | 'seller'>(tabParam === 'seller' ? 'seller' : 'customer');
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,14 +30,15 @@ export default function LoginPage() {
       password,
     });
 
-    if (res?.error) {
+    console.log('Res:', res);
+    console.log('Error:', res?.error);
+
+    if (res?.error) { 
       setError('Email atau password salah! Coba lagi ya 😅');
       setLoading(false);
     } else {
-      // Ambil data sesi untuk mengetahui role aslinya
-      const sessionRes = await fetch('/api/auth/session');
-      const sessionData = await sessionRes.json();
-      
+      // Ambil data sesi menggunakan getSession dari next-auth
+      const sessionData = await getSession();
       const role = sessionData?.user?.role;
       
       if (role === 'seller') {
@@ -48,14 +53,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--neo-bg)] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute inset-0 neo-dots-pattern" />
-      <div className="absolute top-10 left-10 text-5xl animate-float select-none opacity-60 hidden lg:block">🛍️</div>
-      <div className="absolute top-20 right-20 text-4xl animate-float select-none opacity-50 hidden lg:block" style={{ animationDelay: '1s' }}>🏪</div>
-      <div className="absolute bottom-16 left-1/4 text-3xl animate-float select-none opacity-40 hidden lg:block" style={{ animationDelay: '0.5s' }}>⭐</div>
-      <div className="absolute bottom-20 right-1/4 text-4xl animate-spin-slow select-none opacity-30 hidden lg:block">✦</div>
-
+    <>
       <div className="relative max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8 animate-bounce-in">
@@ -126,6 +124,13 @@ export default function LoginPage() {
                 : 'Ayo kelola toko & produkmu sekarang 💪'}
             </p>
           </div>
+
+          {/* Notif daftar sukses */}
+          {justRegistered && (
+            <div className="mb-4 p-3 bg-green-50 border-[2px] border-green-400 rounded-xl font-bold text-sm text-green-700 flex items-center gap-2">
+              ✅ Akun berhasil dibuat! Silakan masuk.
+            </div>
+          )}
 
           {/* Error Notification */}
           {error && (
@@ -204,7 +209,7 @@ export default function LoginPage() {
             <p className="text-sm font-medium text-[var(--neo-black)] opacity-60 mb-3">
               Belum punya akun?
             </p>
-            <Link href="/register" id="register-link">
+            <Link href={`/register?role=${activeTab}`} id="register-link">
               <span className="neo-btn neo-btn-accent text-sm font-extrabold w-full inline-flex">
                 ✨ Daftar Gratis Sekarang
               </span>
@@ -219,6 +224,29 @@ export default function LoginPage() {
           </Link>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--neo-bg)] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 neo-dots-pattern" />
+      <div className="absolute top-10 left-10 text-5xl animate-float select-none opacity-60 hidden lg:block">🛍️</div>
+      <div className="absolute top-20 right-20 text-4xl animate-float select-none opacity-50 hidden lg:block" style={{ animationDelay: '1s' }}>🏪</div>
+      <div className="absolute bottom-30 left-1/4 text-3xl animate-float select-none opacity-40 hidden lg:block" style={{ animationDelay: '0.5s' }}>⭐</div>
+      <div className="absolute bottom-40 right-1/4 text-4xl animate-spin-slow select-none opacity-30 hidden lg:block">✦</div>
+      <div className="absolute top-50 left-50 text-4xl animate-float select-none opacity-50 hidden lg:block" style={{ animationDelay: '1s' }}>🏪</div>
+      <div className="absolute right-70 bottom-20 text-5xl animate-float select-none opacity-50 hidden lg:block">🛍️</div>
+      <div className="absolute bottom-90 left-1/4 text-5xl animate-spin-slow select-none opacity-40 hidden lg:block">✦</div>
+      <div className="absolute bottom-110 right-40 text-4xl animate-float select-none opacity-40 hidden lg:block" style={{ animationDelay: '0.5s' }}>⭐</div>
+      <div className="absolute bottom-120 left-40 text-4xl animate-float select-none opacity-60 hidden lg:block" style={{ animationDelay: '0.5s' }}>🤩</div>
+      <div className="absolute bottom-130 right-1/4 text-4xl animate-float select-none opacity-60 hidden lg:block" style={{ animationDelay: '0.5s' }}>💖</div>
+
+      <Suspense fallback={<div className="text-xl font-bold animate-pulse z-10">Loading...</div>}>
+        <LoginContent />
+      </Suspense>
     </div>
   );
 }

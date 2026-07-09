@@ -57,6 +57,40 @@ body {
 }
 
 /* ============================================
+   📱 GLOBAL RESPONSIVE FIXES
+   ============================================ */
+
+/* Pastikan semua elemen tidak melebihi lebar viewport */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Semua gambar responsif */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Table tidak meluber di mobile — bungkus dengan overflow-x auto */
+table {
+  width: 100%;
+}
+
+/* Scrollbar hide utility (untuk chips horizontal scroll) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
    🧱 UTILITY CLASSES — Neobrutalis
    ============================================ */
 

@@ -1,63 +1,85 @@
 import { db } from '@/lib/db';
-import { products, orders } from '@/lib/schema';
+import { products, orders, orderItems } from '@/lib/schema';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireRole } from '@/lib/auth-guard';
 import { redirect } from 'next/navigation';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 export default async function SellerDashboardPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
-    redirect('/login');
+  const auth = await requireRole(['seller']);
+  if (!auth.ok) {
+    redirect(auth.status === 401 ? '/login' : '/');
   }
 
-  const sellerId = (session.user as any).id;
+  const sellerId = (auth.session?.user as any).id;
 
-  // Hanya ambil produk milik seller yang login
+  // Hanya ambil produk milik seller ini
   const allProducts = await db.select().from(products).where(eq(products.sellerId, sellerId));
-  const allOrders = await db.select().from(orders);
+  const myProductIds = allProducts.map((p) => p.id);
 
-  const totalRevenue = allOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const paidOrders = allOrders.filter(o => o.status === 'paid');
+  // Hanya ambil pesanan yang mengandung produk milik seller ini
+  let sellerOrders: typeof orders.$inferSelect[] = [];
+  if (myProductIds.length > 0) {
+    // Cari orderItem yang productId-nya milik seller ini
+    const relevantItems = await db
+      .select({ orderId: orderItems.orderId })
+      .from(orderItems)
+      .where(inArray(orderItems.productId, myProductIds));
+
+    const relevantOrderIds = [...new Set(relevantItems.map((i) => i.orderId))];
+
+    if (relevantOrderIds.length > 0) {
+      sellerOrders = await db
+        .select()
+        .from(orders)
+        .where(inArray(orders.id, relevantOrderIds));
+    }
+  }
+
+  const totalRevenue = sellerOrders
+    .filter((o) => o.status === 'paid')
+    .reduce((sum, o) => sum + o.totalAmount, 0);
+  const paidOrders = sellerOrders.filter((o) => o.status === 'paid');
+  const pendingOrders = sellerOrders.filter(
+    (o) => o.status !== 'paid' && o.status !== 'cancelled'
+  );
 
   const formatRupiah = (price: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price);
 
   const stats = [
     {
       label: 'Total Produk',
       value: allProducts.length,
       icon: '📦',
-      color: 'bg-[var(--neo-secondary)]',
-      textColor: 'text-white',
+      color: 'bg-[var(--neo-secondary)] text-[var(--neo-black)]',
       href: '/seller/products',
     },
     {
       label: 'Total Pesanan',
-      value: allOrders.length,
+      value: sellerOrders.length,
       icon: '🧾',
-      color: 'bg-[var(--neo-primary)]',
-      textColor: 'text-white',
+      color: 'bg-[var(--neo-primary)] text-[var(--neo-black)]',
       href: '/seller/orders',
     },
     {
       label: 'Pesanan Lunas',
       value: paidOrders.length,
       icon: '✅',
-      color: 'bg-[var(--neo-green)]',
-      textColor: 'text-[var(--neo-black)]',
+      color: 'bg-[var(--neo-green)] text-[var(--neo-black)]',
       href: '/seller/orders',
     },
     {
       label: 'Total Pendapatan',
       value: formatRupiah(totalRevenue),
       icon: '💰',
-      color: 'bg-[var(--neo-accent)]',
-      textColor: 'text-[var(--neo-black)]',
+      color: 'bg-[var(--neo-accent)] text-[var(--neo-black)]',
       href: '/seller/orders',
     },
   ];
@@ -93,7 +115,7 @@ export default async function SellerDashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-12 animate-slide-up stagger-1">
           {stats.map((stat, i) => (
             <Link href={stat.href} key={i}>
-              <div className={`neo-card p-6 ${stat.color} ${stat.textColor} hover-lift cursor-pointer stagger-${i + 1}`}>
+              <div className={`neo-card p-6 ${stat.color} hover-lift cursor-pointer stagger-${i + 1}`}>
                 <div className="text-4xl mb-3">{stat.icon}</div>
                 <div className="text-2xl font-extrabold mb-1 leading-tight">{stat.value}</div>
                 <div className="text-sm font-bold opacity-80">{stat.label}</div>
@@ -101,6 +123,20 @@ export default async function SellerDashboardPage() {
             </Link>
           ))}
         </div>
+
+        {/* Notif pesanan menunggu approval */}
+        {pendingOrders.length > 0 && (
+          <div className="neo-card p-5 mb-8 bg-[var(--neo-accent)]/30 border-[3px] border-[var(--neo-accent)] animate-slide-up stagger-2 flex items-center gap-4">
+            <div className="text-3xl">⚠️</div>
+            <div>
+              <p className="font-extrabold text-lg">Ada {pendingOrders.length} pesanan menunggu konfirmasi Anda!</p>
+              <p className="text-sm font-semibold opacity-70">Segera approve agar pembeli bisa melanjutkan prosesnya.</p>
+            </div>
+            <Link href="/seller/orders" className="ml-auto shrink-0">
+              <button className="neo-btn neo-btn-primary text-sm">Lihat &amp; Approve →</button>
+            </Link>
+          </div>
+        )}
 
         <div className="neo-zigzag opacity-20 mb-10" />
 
@@ -127,7 +163,7 @@ export default async function SellerDashboardPage() {
                   <div>
                     <h3 className="font-extrabold line-clamp-1 mb-1">{item.name}</h3>
                     <span className="bg-[var(--neo-accent)] px-2 py-0.5 border-[2px] border-[var(--neo-black)] rounded text-sm font-extrabold shadow-[1px_1px_0px_var(--neo-black)]">
-                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.price)}
+                      {formatRupiah(item.price)}
                     </span>
                   </div>
                   <Link href={`/seller/products/${item.id}/edit`}>
@@ -139,7 +175,7 @@ export default async function SellerDashboardPage() {
           )}
         </div>
 
-        {/* Pesanan Terakhir */}
+        {/* Pesanan Terakhir milik seller */}
         <div className="animate-slide-up stagger-3">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-extrabold flex items-center gap-2">
@@ -150,10 +186,10 @@ export default async function SellerDashboardPage() {
             </Link>
           </div>
 
-          {allOrders.length === 0 ? (
+          {sellerOrders.length === 0 ? (
             <div className="neo-card p-10 text-center">
               <div className="text-5xl mb-3 animate-bounce-in">🪹</div>
-              <p className="font-bold opacity-60">Belum ada pesanan masuk.</p>
+              <p className="font-bold opacity-60">Belum ada pesanan masuk untuk produk Anda.</p>
             </div>
           ) : (
             <div className="neo-card overflow-hidden">
@@ -167,7 +203,7 @@ export default async function SellerDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {allOrders.slice(0, 5).map((order, i) => (
+                  {sellerOrders.slice(0, 5).map((order) => (
                     <tr key={order.id} className="border-b-[2px] border-dashed border-[var(--neo-black)] border-opacity-10 hover:bg-[var(--neo-gray)] transition-colors">
                       <td className="p-4 font-bold">{order.customerName}</td>
                       <td className="p-4 opacity-60 font-medium hidden md:table-cell">
@@ -175,8 +211,14 @@ export default async function SellerDashboardPage() {
                       </td>
                       <td className="p-4 font-extrabold">{formatRupiah(order.totalAmount)}</td>
                       <td className="p-4">
-                        <span className={`neo-sticker text-xs px-2 py-0.5 rotate-0 ${order.status === 'paid' ? 'bg-[var(--neo-green)] text-[var(--neo-black)]' : 'bg-[var(--neo-accent)] text-[var(--neo-black)]'}`}>
-                          {order.status === 'paid' ? '✅ Lunas' : '⏳ Menunggu'}
+                        <span className={`neo-sticker text-xs px-2 py-0.5 rotate-0 ${
+                          order.status === 'paid' ? 'bg-[var(--neo-green)] text-[var(--neo-black)]' :
+                          order.status === 'cancelled' ? 'bg-red-400 text-white' :
+                          'bg-[var(--neo-accent)] text-[var(--neo-black)]'
+                        }`}>
+                          {order.status === 'paid' ? '✅ Lunas' :
+                           order.status === 'cancelled' ? '❌ Dibatalkan' :
+                           '⏳ Menunggu'}
                         </span>
                       </td>
                     </tr>

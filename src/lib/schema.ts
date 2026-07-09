@@ -12,6 +12,20 @@ export const users = pgTable('users', {
   password: varchar('password', { length: 255 }).notNull(),
   role: roleEnum('role').default('customer').notNull(),
 
+  // Moderasi oleh admin
+  isBanned: boolean('is_banned').notNull().default(false),
+  banReason: text('ban_reason'),
+
+  // Biodata profil
+  bio: text('bio'),
+  avatarUrl: varchar('avatar_url', { length: 255 }),
+  gender: varchar('gender', { length: 20 }),
+  birthDate: varchar('birth_date', { length: 20 }),
+
+  // Info toko (khusus seller)
+  storeName: varchar('store_name', { length: 255 }),
+  storeDescription: text('store_description'),
+
   // Data alamat pengiriman customer
   recipientName: varchar('recipient_name', { length: 255 }),
   phone: varchar('phone', { length: 30 }),
@@ -33,9 +47,14 @@ export const products = pgTable('products', {
   price: integer('price').notNull(),
   description: text('description'),
   imageUrl: varchar('image_url', { length: 255 }),
+  category: varchar('category', { length: 100 }).notNull().default('Lainnya'),
 
   stock: integer('stock').notNull().default(0),
   isAvailable: boolean('is_available').notNull().default(true),
+
+  // Moderasi oleh admin
+  isSuspended: boolean('is_suspended').notNull().default(false),
+  suspendReason: text('suspend_reason'),
 
   // Rating dan review
   rating: real('rating').default(0).notNull(),

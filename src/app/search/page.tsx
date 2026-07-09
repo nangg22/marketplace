@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
-import { products } from '@/lib/schema';
-import { ilike } from 'drizzle-orm';
+import { products, users } from '@/lib/schema';
+import { ilike, eq, and } from 'drizzle-orm';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductsCard from '@/components/ProductCard';
@@ -14,10 +14,20 @@ export default async function SearchPage({
   const resolvedParams = await searchParams;
   const q = resolvedParams.q || '';
 
-  // Query database: jika ada kata kunci pencarian, gunakan ilike, jika kosong ambil semua
+  const baseQuery = db
+    .select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      imageUrl: products.imageUrl,
+      sellerName: users.name,
+    })
+    .from(products)
+    .leftJoin(users, eq(products.sellerId, users.id));
+
   const searchResults = q
-    ? await db.select().from(products).where(ilike(products.name, `%${q}%`))
-    : await db.select().from(products);
+    ? await baseQuery.where(and(ilike(products.name, `%${q}%`), eq(products.isSuspended, false)))
+    : await baseQuery.where(eq(products.isSuspended, false));
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--neo-bg)]">

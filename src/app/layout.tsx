@@ -8,7 +8,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "MallPedia — Marketplace Neobrutalis",
+  title: "MallPedia — Marketplace",
   description: "Jelajahi produk terbaik dengan pengalaman belanja yang unik dan menyenangkan di MallPedia.",
 };
 

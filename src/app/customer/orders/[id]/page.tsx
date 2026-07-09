@@ -5,16 +5,28 @@ import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export default async function CustomerOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const orderId = resolvedParams.id;
 
-  // 1. Ambil data Order utama
+  // Auth check — harus login
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect('/login');
+
+  const customerId = (session.user as any).id;
+  const userRole = (session.user as any).role;
+
+  // Ambil data Order
   const orderResult = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   const order = orderResult[0];
 
-  if (!order) {
+  if (!order) redirect('/customer/orders');
+
+  // Pastikan order milik user ini (kecuali admin)
+  if (userRole !== 'admin' && order.customerId !== customerId) {
     redirect('/customer/orders');
   }
 
@@ -71,11 +83,20 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
           <div className="pt-6">
             <h3 className="font-extrabold text-lg mb-4">Informasi Pengiriman</h3>
             <div className="bg-[var(--neo-gray)] p-4 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)]">
-              <p className="font-extrabold text-lg mb-1">{order.recipientName || order.customerName}</p>
-              {order.phone && <p className="text-sm font-medium opacity-80 mb-1">📞 {order.phone}</p>}
-              {order.address && (
+              <p className="font-extrabold text-lg mb-1">
+                {order.shippingRecipientName || order.recipientName || order.customerName}
+              </p>
+              {(order.shippingPhone || order.phone) && (
+                <p className="text-sm font-medium opacity-80 mb-1">
+                  📞 {order.shippingPhone || order.phone}
+                </p>
+              )}
+              {(order.shippingAddress || order.address) && (
                 <p className="text-sm font-medium opacity-80">
-                  {order.address}{order.city ? `, ${order.city}` : ''}{order.province ? `, ${order.province}` : ''}{order.postalCode ? ` ${order.postalCode}` : ''}
+                  {order.shippingAddress || order.address}
+                  {(order.shippingCity || order.city) ? `, ${order.shippingCity || order.city}` : ''}
+                  {(order.shippingProvince || order.province) ? `, ${order.shippingProvince || order.province}` : ''}
+                  {(order.shippingPostalCode || order.postalCode) ? ` ${order.shippingPostalCode || order.postalCode}` : ''}
                 </p>
               )}
             </div>

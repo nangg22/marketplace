@@ -11,7 +11,7 @@ export default function Footer() {
           </span>
         </div>
         <p className="text-sm opacity-70 font-medium mb-4">
-          Marketplace Neobrutalis — Tugas Akhir © 2026
+          Marketplace  — Tugas Akhir © 2026
         </p>
         <div className="flex justify-center gap-3">
           <span className="neo-badge bg-[var(--neo-secondary)] text-white border-white/30 hover-wiggle cursor-default">

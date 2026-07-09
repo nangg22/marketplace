@@ -2,23 +2,35 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductsCard from '@/components/ProductCard';
 import { db } from '@/lib/db';
-import { products } from '@/lib/schema';
+import { products, users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export default async function HomePage() {
-  const realProducts = await db.select().from(products);
+  // Join produk dengan nama seller
+  const realProducts = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      imageUrl: products.imageUrl,
+      sellerName: users.name,
+    })
+    .from(products)
+    .leftJoin(users, eq(products.sellerId, users.id))
+    .where(eq(products.isSuspended, false));
 
   // Cek session untuk tombol "Mulai Jualan"
   const session = await getServerSession(authOptions);
   const role = (session?.user as any)?.role;
 
-  // Tentukan href tombol Mulai Jualan:
-  // - Sudah login sebagai seller → langsung ke dashboard
-  // - Belum login / role lain → ke login
-  const mulaiJualanHref = role === 'seller' ? '/seller/dashboard' : '/login';
-  const mulaiJualanLabel = role === 'seller' ? '🏪 Dashboard Saya' : '🔐 Mulai Jualan';
+  // Tombol Mulai Jualan:
+  // - Jika sudah login sebagai Penjual → langsung ke produk penjual
+  // - Selain itu (belum login / login sebagai Pembeli) → ke halaman login tab Penjual
+  const mulaiJualanHref = role === 'seller' ? '/seller/products' : '/login?tab=seller';
+  const mulaiJualanLabel = role === 'seller' ? '🏪 Kelola Toko' : '🔐 Mulai Jualan';
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--neo-bg)]">
@@ -103,10 +115,13 @@ export default async function HomePage() {
               </div>
             </Link>
 
-            <div className="flex gap-2 flex-wrap">
-              <button className="neo-btn neo-btn-primary text-xs py-1.5 px-4">🔥 Semua</button>
-              <button className="neo-btn neo-btn-outline text-xs py-1.5 px-4">⭐ Terlaris</button>
-              <button className="neo-btn neo-btn-outline text-xs py-1.5 px-4">💰 Termurah</button>
+            <div className="flex gap-2 flex-wrap mt-4 mb-2">
+              <Link href="/products" className="neo-btn neo-btn-primary text-xs py-1.5 px-3">🔥 Semua</Link>
+              <Link href="/products?category=Elektronik" className="neo-btn neo-btn-outline text-xs py-1.5 px-3">📱 Elektronik</Link>
+              <Link href="/products?category=Fashion+Pria" className="neo-btn neo-btn-outline text-xs py-1.5 px-3">👔 Fashion Pria</Link>
+              <Link href="/products?category=Fashion+Wanita" className="neo-btn neo-btn-outline text-xs py-1.5 px-3">👗 Fashion Wanita</Link>
+              <Link href="/products?category=Rumah+Tangga" className="neo-btn neo-btn-outline text-xs py-1.5 px-3">🏠 Rumah Tangga</Link>
+              <Link href="/products?sort=cheapest" className="neo-btn neo-btn-outline text-xs py-1.5 px-3">💰 Termurah</Link>
             </div>
 
             <div className="neo-zigzag mb-8" />

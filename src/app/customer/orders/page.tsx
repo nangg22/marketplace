@@ -34,6 +34,21 @@ export default async function CustomerOrdersPage() {
     });
   };
 
+  const getStatusLabel = (status: string) => {
+    const map: Record<string, { label: string; color: string }> = {
+      pending: { label: '⏳ Menunggu', color: 'bg-[var(--neo-accent)] text-[var(--neo-black)]' },
+      pending_cod: { label: '📦 COD Pending', color: 'bg-yellow-200 text-yellow-900' },
+      awaiting_payment: { label: '💳 Menunggu Bayar', color: 'bg-orange-100 text-orange-800' },
+      paid: { label: '✅ Lunas', color: 'bg-[var(--neo-green)] text-[var(--neo-black)]' },
+      processing: { label: '🔄 Diproses', color: 'bg-blue-100 text-blue-800' },
+      shipped: { label: '🚚 Dikirim', color: 'bg-[var(--neo-secondary)] text-white' },
+      completed: { label: '🎉 Selesai', color: 'bg-[var(--neo-primary)] text-white' },
+      cancelled: { label: '❌ Dibatalkan', color: 'bg-[var(--neo-pink)] text-white' },
+      refunded: { label: '↩️ Refund', color: 'bg-gray-300 text-gray-800' },
+    };
+    return map[status] || { label: status, color: 'bg-gray-200 text-gray-700' };
+  };
+
   return (
     <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
       <Navbar />
@@ -65,9 +80,14 @@ export default async function CustomerOrdersPage() {
                       <span className="neo-badge bg-[var(--neo-gray)] font-bold text-xs uppercase tracking-wide">
                         {formatDate(order.createdAt)}
                       </span>
-                      <span className="neo-sticker bg-[var(--neo-green)] text-[var(--neo-black)] rotate-[-2deg] text-xs px-2 py-0.5">
-                        {order.status === 'paid' ? 'Lunas ✅' : 'Menunggu ⏳'}
-                      </span>
+                      {(() => {
+                        const s = getStatusLabel(order.status);
+                        return (
+                          <span className={`neo-sticker rotate-[-2deg] text-xs px-2 py-0.5 ${s.color}`}>
+                            {s.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <h3 className="font-extrabold text-lg mb-1">Pesanan dari {order.customerName}</h3>
                     <p className="font-bold opacity-60 text-sm">ID: <span className="font-mono text-xs opacity-80">{order.id}</span></p>
