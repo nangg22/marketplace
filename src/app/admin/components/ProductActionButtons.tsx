@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { suspendProduct, unsuspendProduct, deleteProduct } from '@/app/admin/actions';
 
 interface Props {
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function ProductActionButtons({ productId, productName, isSuspended }: Props) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [isPending, startTransition] = useTransition();
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [suspendReason, setSuspendReason] = useState('');
@@ -63,7 +66,7 @@ export default function ProductActionButtons({ productId, productName, isSuspend
         </button>
       </div>
 
-      {showSuspendModal && (
+      {mounted && showSuspendModal && createPortal(
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="neo-card max-w-sm w-full p-6 animate-bounce-in">
             <h3 className="font-extrabold text-lg mb-1">⏸️ Suspend Produk</h3>
@@ -82,7 +85,8 @@ export default function ProductActionButtons({ productId, productName, isSuspend
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

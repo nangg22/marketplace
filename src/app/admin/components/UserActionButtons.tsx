@@ -112,7 +112,7 @@ export default function UserActionButtons({ userId, userName, currentRole, isBan
       )}
 
       {/* Modal Role */}
-      {showRoleModal && (
+      {mounted && showRoleModal && createPortal(
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="neo-card max-w-sm w-full p-6 animate-bounce-in">
             <h3 className="font-extrabold text-lg mb-1">🎭 Ubah Role</h3>

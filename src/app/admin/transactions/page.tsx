@@ -60,7 +60,7 @@ export default async function AdminTransactionsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-slide-up stagger-1">
-          <div className="neo-card p-4 bg-[#7B4AE2] text-white">
+          <div className="neo-card p-4 bg-[#7B4AE2] text-[#1A1A2E]">
             <div className="text-3xl mb-1">🧾</div>
             <div className="text-2xl font-extrabold">{allOrders.length}</div>
             <div className="text-xs font-bold opacity-90">Total Transaksi</div>
@@ -75,7 +75,7 @@ export default async function AdminTransactionsPage() {
             <div className="text-2xl font-extrabold">{paidCount}</div>
             <div className="text-xs font-bold opacity-90">Berhasil</div>
           </div>
-          <div className="neo-card p-4 bg-[#FF6B35] text-white">
+          <div className="neo-card p-4 bg-[#FF6B35] text-[#1A1A2E]">
             <div className="text-3xl mb-1">💰</div>
             <div className="text-lg font-extrabold leading-tight">{formatRupiah(totalRevenue)}</div>
             <div className="text-xs font-bold opacity-90">Total Revenue</div>
