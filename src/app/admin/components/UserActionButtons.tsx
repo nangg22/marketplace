@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { banUser, unbanUser, changeUserRole, deleteUser } from '@/app/admin/actions';
+import { createPortal } from 'react-dom';
 
 type Role = 'customer' | 'seller' | 'admin';
 
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export default function UserActionButtons({ userId, userName, currentRole, isBanned }: Props) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [isPending, startTransition] = useTransition();
   const [showBanModal, setShowBanModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -89,7 +92,7 @@ export default function UserActionButtons({ userId, userName, currentRole, isBan
       </div>
 
       {/* Modal Ban */}
-      {showBanModal && (
+      {mounted && showBanModal && createPortal(
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="neo-card max-w-sm w-full p-6 animate-bounce-in">
             <h3 className="font-extrabold text-lg mb-1">🚫 Ban Pengguna</h3>
@@ -108,7 +111,8 @@ export default function UserActionButtons({ userId, userName, currentRole, isBan
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Role */}
@@ -139,7 +143,8 @@ export default function UserActionButtons({ userId, userName, currentRole, isBan
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
