@@ -5,6 +5,9 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import AddToCartButton from './AddToCartButton';
+import ReviewForm from '@/components/ReviewForm';
+import ReviewList from '@/components/ReviewList';
+import StarRating from '@/components/StarRating';
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -27,6 +30,34 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     .limit(1);
 
   const product = result[0];
+
+  // Fetch reviews + rata-rata rating
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  let reviewsData: Array<{
+    id: string;
+    rating: number;
+    title: string | null;
+    reviewText: string | null;
+    isVerifiedPurchase: boolean;
+    createdAt: string;
+    userName: string;
+  }> = [];
+  let averageRating = '0.0';
+  let totalReviews = 0;
+
+  try {
+    const reviewRes = await fetch(`${baseUrl}/api/products/${productId}/reviews`, {
+      cache: 'no-store',
+    });
+    if (reviewRes.ok) {
+      const reviewJson = await reviewRes.json();
+      reviewsData = reviewJson.reviews;
+      averageRating = reviewJson.average;
+      totalReviews = reviewJson.total;
+    }
+  } catch {
+    // Gagal fetch reviews, lanjut tampil produk tanpa review
+  }
 
   const formatRupiah = (price: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
@@ -138,7 +169,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <div className="text-4xl">🚚</div>
             <div>
               <h4 className="font-extrabold text-lg">Gratis Ongkir</h4>
-              <p className="text-sm font-medium opacity-70">Pengiriman gratis ke seluruh penjuru dunia.</p>
+              <p className="text-sm font-medium opacity-70">Pengiriman gratis ke seluruh pulau jawa.</p>
             </div>
           </div>
           <div className="neo-card p-6 flex items-start gap-4 hover-lift">
@@ -149,6 +180,32 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
         </div>
+        {/* Section Rating & Review */}
+        <div className="mt-12 animate-slide-up stagger-3">
+          <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-3">
+            ⭐ Rating &amp; Review
+          </h2>
+
+          {/* Ringkasan Rating */}
+          <div className="neo-card p-6 mb-6 flex items-center gap-4">
+            <span className="text-5xl font-extrabold">{averageRating}</span>
+            <div>
+              <StarRating value={Number(averageRating)} readOnly size={24} />
+              <p className="text-sm text-gray-500 mt-1">dari {totalReviews} review</p>
+            </div>
+          </div>
+
+          {/* Form Review */}
+          <div className="mb-6">
+            <ReviewForm productId={productId} />
+          </div>
+
+          {/* Daftar Review */}
+          <div className="neo-card p-6">
+            <ReviewList reviews={reviewsData} />
+          </div>
+        </div>
+
       </main>
 
       <Footer />

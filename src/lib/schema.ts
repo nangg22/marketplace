@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, integer, pgEnum, timestamp, boolean, real } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, pgEnum, timestamp, boolean, real, unique } from 'drizzle-orm/pg-core';
 
 
 // 1. Definisikan Hak Akses (Role)
@@ -110,23 +110,36 @@ export const orderItems = pgTable('order_items', {
 });
 
 // Tabel Review Produk
-export const reviews = pgTable('reviews', {
-  id: uuid('id').defaultRandom().primaryKey(),
+export const reviews = pgTable(
+  'reviews',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
 
-  productId: uuid('product_id')
-    .references(() => products.id)
-    .notNull(),
+    productId: uuid('product_id')
+      .references(() => products.id, { onDelete: 'cascade' })
+      .notNull(),
 
-  customerId: uuid('customer_id')
-    .references(() => users.id)
-    .notNull(),
+    customerId: uuid('customer_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
 
-  rating: real('rating').notNull(),
-  title: varchar('title', { length: 150 }),
-  reviewText: text('review_text'),
+    // Untuk fitur Verified Purchase
+    orderId: uuid('order_id')
+      .references(() => orders.id, { onDelete: 'set null' }),
+    isVerifiedPurchase: boolean('is_verified_purchase').default(false).notNull(),
 
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+    rating: real('rating').notNull(),
+    title: varchar('title', { length: 150 }),
+    reviewText: text('review_text'),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    // Satu customer hanya boleh 1 review per produk
+    uniqueCustomerProduct: unique().on(table.customerId, table.productId),
+  })
+);
 
 // Tabel Foto Review Produk
 export const reviewImages = pgTable('review_images', {
