@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { eq, inArray } from 'drizzle-orm';
 import { sellerOnboarding } from '@/lib/schema';
 import SellerOnboardingChecklist from '@/components/SellerOnboardingChecklist';
+import SellerAnalyticsDashboard from '@/components/SellerAnalyticsDashboard';
 
 export default async function SellerDashboardPage() {
   const auth = await requireRole(['seller']);
@@ -146,6 +147,16 @@ export default async function SellerDashboardPage() {
             </Link>
           </div>
         )}
+
+        <div className="neo-zigzag opacity-20 mb-10" />
+
+        {/* Analitik Seller */}
+        <div className="mb-10 animate-slide-up stagger-2">
+          <h2 className="text-2xl font-extrabold flex items-center gap-2 mb-6">
+            <span>📊</span> Analitik & Performa Toko
+          </h2>
+          <SellerAnalyticsDashboard />
+        </div>
 
         <div className="neo-zigzag opacity-20 mb-10" />
 
