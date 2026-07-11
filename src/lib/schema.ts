@@ -153,3 +153,15 @@ export const reviewImages = pgTable('review_images', {
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// Tabel Gambar Produk (Multiple Uploads)
+export const productImages = pgTable('product_images', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  isPrimary: boolean('is_primary').default(false).notNull(),
+  order: integer('order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

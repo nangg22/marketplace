@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
-import { products, users } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { products, users, productImages } from '@/lib/schema';
+import { eq, asc } from 'drizzle-orm';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -8,12 +8,10 @@ import AddToCartButton from './AddToCartButton';
 import ReviewForm from '@/components/ReviewForm';
 import ReviewList from '@/components/ReviewList';
 import StarRating from '@/components/StarRating';
+import ProductGallery from '@/components/ProductGallery';
+import type { Metadata } from 'next';
 
-export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params;
-  const productId = resolvedParams.id;
-
-  // Fetch product + nama seller
+async function getProduct(id: string) {
   const result = await db
     .select({
       id: products.id,
@@ -26,10 +24,99 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     })
     .from(products)
     .leftJoin(users, eq(products.sellerId, users.id))
-    .where(eq(products.id, productId))
+    .where(eq(products.id, id))
     .limit(1);
+    
+  return result[0];
+}
 
-  const product = result[0];
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const product = await getProduct(resolvedParams.id);
+
+  if (!product) {
+    return { title: "Produk tidak ditemukan | MallPedia" };
+  }
+
+  const description = product.description
+    ? product.description.slice(0, 155)
+    : `Beli ${product.name} dengan harga terbaik di MallPedia.`;
+
+  return {
+    title: `${product.name} | MallPedia`,
+    description,
+    openGraph: {
+      title: product.name,
+      description,
+      images: product.imageUrl ? [product.imageUrl] : [],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: product.imageUrl ? [product.imageUrl] : [],
+    },
+  };
+}
+
+function ProductJsonLd({ product, averageRating, reviewCount }: {
+  product: { name: string; description: string | null; price: number; imageUrl: string | null };
+  averageRating: string;
+  reviewCount: number;
+}) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.imageUrl,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "IDR",
+      price: product.price,
+      availability: "https://schema.org/InStock",
+    },
+    ...(reviewCount > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: averageRating,
+        reviewCount: reviewCount,
+      },
+    }),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
+
+export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const productId = resolvedParams.id;
+
+  // Fetch product + nama seller
+  const product = await getProduct(productId);
+  
+  // Fetch multiple images dari db
+  const imagesRecord = await db
+    .select({ url: productImages.url })
+    .from(productImages)
+    .where(eq(productImages.productId, productId))
+    .orderBy(asc(productImages.order));
+    
+  let displayImages = imagesRecord;
+  if (imagesRecord.length === 0 && product?.imageUrl) {
+    // Fallback: jika tak ada data di product_images, gunakan imageUrl produk
+    displayImages = [{ url: product.imageUrl }];
+  }
 
   // Fetch reviews + rata-rata rating
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -84,6 +171,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
+      <ProductJsonLd product={product} averageRating={averageRating} reviewCount={totalReviews} />
       <Navbar />
       
       <main className="flex-grow max-w-6xl mx-auto px-4 py-10 w-full relative">
@@ -95,26 +183,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
         <div className="bg-white border-[4px] border-[var(--neo-black)] rounded-2xl overflow-hidden shadow-[var(--neo-shadow-lg)] flex flex-col md:flex-row animate-slide-up stagger-1">
           {/* Bagian Gambar */}
-          <div className="w-full md:w-1/2 bg-[var(--neo-gray)] border-b-[4px] md:border-b-0 md:border-r-[4px] border-[var(--neo-black)] p-8 flex items-center justify-center relative min-h-[300px]">
+          <div className="w-full md:w-1/2 bg-[var(--neo-gray)] border-b-[4px] md:border-b-0 md:border-r-[4px] border-[var(--neo-black)] p-8 flex flex-col relative min-h-[300px]">
             {/* Dekorasi Badge */}
             <div className="absolute top-4 left-4 z-10">
               <span className="neo-sticker bg-[var(--neo-accent)] text-sm rotate-[-3deg]">
                 ✨ Original
               </span>
             </div>
-
-            {product.imageUrl && product.imageUrl !== 'https://via.placeholder.com/300?text=No+Image' ? (
-              <img 
-                src={product.imageUrl} 
-                alt={product.name} 
-                className="max-w-full h-auto object-contain drop-shadow-[8px_8px_0px_rgba(26,26,46,0.2)] hover:scale-105 transition-transform duration-300"
-              />
-            ) : (
-              <div className="text-center opacity-40">
-                <div className="text-8xl mb-4">📦</div>
-                <div className="font-extrabold uppercase tracking-widest text-xl">No Image</div>
-              </div>
-            )}
+            
+            <ProductGallery images={displayImages} />
           </div>
 
           {/* Bagian Info */}

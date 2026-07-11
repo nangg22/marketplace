@@ -2,23 +2,25 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { UploadButton } from '@/utils/uploadthing';
+import ProductImageUploader from '@/components/ProductImageUploader';
 import { addProductAction } from '../actions';
+import "@uploadthing/react/styles.css"; // Wajib agar tombolnya rapi
 import "@uploadthing/react/styles.css"; // Wajib agar tombolnya rapi
 
 export default function CreateProductPage() {
-  const [imageUrl, setImageUrl] = useState<string>("");
+  const [images, setImages] = useState<{ url: string; isPrimary: boolean }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   // Fungsi saat form disubmit
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!imageUrl) {
-      alert("⚠️ Wajib upload gambar produk dulu ya!");
+    if (images.length === 0) {
+      alert("⚠️ Wajib upload gambar produk minimal 1 ya!");
       return;
     }
     const formData = new FormData(e.currentTarget);
-    await addProductAction(formData, imageUrl);
+    formData.append('images', JSON.stringify(images));
+    await addProductAction(formData);
   };
 
   return (
@@ -37,30 +39,9 @@ export default function CreateProductPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           
           {/* AREA UPLOAD GAMBAR */}
-          <div className="bg-[#E8F0FE] border-4 border-black p-6 rounded-xl flex flex-col items-center justify-center min-h-[200px]">
-            {imageUrl ? (
-              <div className="relative w-full">
-                <img src={imageUrl} alt="Preview" className="w-full h-48 object-cover rounded-lg border-2 border-black mb-4" />
-                <button type="button" onClick={() => setImageUrl("")} className="absolute top-2 right-2 bg-red-400 text-white font-bold px-3 py-1 border-2 border-black rounded">Ganti</button>
-              </div>
-            ) : (
-              <>
-                <p className="font-bold mb-4">Upload Foto Produk (Max 4MB)</p>
-                <UploadButton
-                  endpoint="imageUploader"
-                  onUploadBegin={() => setIsUploading(true)}
-                  onClientUploadComplete={(res) => {
-                    setImageUrl(res[0].url);
-                    setIsUploading(false);
-                    alert("✅ Gambar berhasil diupload!");
-                  }}
-                  onUploadError={(error: Error) => {
-                    setIsUploading(false);
-                    alert(`❌ ERROR: ${error.message}`);
-                  }}
-                />
-              </>
-            )}
+          <div className="bg-[#E8F0FE] border-4 border-black p-6 rounded-xl min-h-[200px]">
+            <p className="font-bold mb-4">Upload Foto Produk (Max 4MB, hingga 5 foto)</p>
+            <ProductImageUploader images={images} onChange={setImages} />
           </div>
 
           <div>

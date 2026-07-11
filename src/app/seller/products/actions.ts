@@ -1,13 +1,13 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { products, users } from '@/lib/schema';
+import { products, users, productImages } from '@/lib/schema';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
-export async function addProductAction(formData: FormData, imageUrl: string) {
+export async function addProductAction(formData: FormData) {
   const session = await getServerSession(authOptions);
   
   if (!session?.user || (session.user as any).role !== 'seller') return;
@@ -19,14 +19,36 @@ export async function addProductAction(formData: FormData, imageUrl: string) {
   const currentUser = await db.select().from(users).where(eq(users.email, session.user.email as string)).limit(1);
   const sellerId = currentUser[0].id;
 
-  // Menyimpan data produk beserta URL gambar dari UploadThing
-  await db.insert(products).values({ 
+  const imagesRaw = formData.get('images') as string;
+  let images: { url: string; isPrimary: boolean }[] = [];
+  try {
+    images = JSON.parse(imagesRaw);
+  } catch (e) {
+    console.error("Gagal parse images JSON");
+  }
+
+  // Tentukan gambar utama
+  const primaryImage = images.find(img => img.isPrimary) || images[0];
+  const primaryImageUrl = primaryImage ? primaryImage.url : '';
+
+  // Menyimpan data produk beserta URL gambar utama
+  const [newProduct] = await db.insert(products).values({ 
     name, 
     price, 
     description, 
     sellerId, 
-    imageUrl // <-- Data gambar masuk ke database
-  });
+    imageUrl: primaryImageUrl
+  }).returning();
+  
+  if (images.length > 0) {
+    const imagesToInsert = images.map((img, i) => ({
+      productId: newProduct.id,
+      url: img.url,
+      isPrimary: img.isPrimary,
+      order: i
+    }));
+    await db.insert(productImages).values(imagesToInsert);
+  }
   
   redirect('/seller/products');
 }

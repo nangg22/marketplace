@@ -3,8 +3,9 @@ import Footer from '@/components/Footer';
 import ProductsCard from '@/components/ProductCard';
 import { db } from '@/lib/db';
 import { products, users } from '@/lib/schema';
-import { ilike, eq, asc, desc, and } from 'drizzle-orm';
+import { ilike, eq, asc, desc, and, gte, lte } from 'drizzle-orm';
 import Link from 'next/link';
+import PriceFilter from '@/components/PriceFilter';
 
 export const CATEGORIES = [
   { label: 'Semua', icon: '🛍️', value: '' },
@@ -25,12 +26,14 @@ export const CATEGORIES = [
 export default async function AllProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; sort?: string; q?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; q?: string; minPrice?: string; maxPrice?: string }>;
 }) {
   const params = await searchParams;
   const activeCategory = params.category || '';
   const sort = params.sort || 'newest';
   const q = params.q || '';
+  const minPrice = params.minPrice;
+  const maxPrice = params.maxPrice;
 
   // Build query — exclude produk yang di-suspend admin
   const baseSelect = db
@@ -53,6 +56,12 @@ export default async function AllProductsPage({
   }
   if (q) {
     query = query.where(and(eq(products.isSuspended, false), ilike(products.name, `%${q}%`)));
+  }
+  if (minPrice) {
+    query = query.where(and(eq(products.isSuspended, false), gte(products.price, Number(minPrice))));
+  }
+  if (maxPrice) {
+    query = query.where(and(eq(products.isSuspended, false), lte(products.price, Number(maxPrice))));
   }
 
   if (sort === 'cheapest') {
@@ -143,6 +152,10 @@ export default async function AllProductsPage({
                     );
                   })}
                 </nav>
+              </div>
+              
+              <div className="mt-6 sticky top-[380px]">
+                <PriceFilter />
               </div>
             </aside>
 
