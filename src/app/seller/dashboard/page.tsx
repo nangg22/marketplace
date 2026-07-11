@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/auth-guard';
 import { redirect } from 'next/navigation';
 import { eq, inArray } from 'drizzle-orm';
+import { sellerOnboarding } from '@/lib/schema';
+import SellerOnboardingChecklist from '@/components/SellerOnboardingChecklist';
 
 export default async function SellerDashboardPage() {
   const auth = await requireRole(['seller']);
@@ -14,6 +16,11 @@ export default async function SellerDashboardPage() {
   }
 
   const sellerId = (auth.session?.user as any).id;
+
+  const [onboarding] = await db
+    .select()
+    .from(sellerOnboarding)
+    .where(eq(sellerOnboarding.userId, sellerId));
 
   // Hanya ambil produk milik seller ini
   const allProducts = await db.select().from(products).where(eq(products.sellerId, sellerId));
@@ -110,6 +117,8 @@ export default async function SellerDashboardPage() {
             </button>
           </Link>
         </div>
+
+        {onboarding && <SellerOnboardingChecklist status={onboarding} />}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-12 animate-slide-up stagger-1">

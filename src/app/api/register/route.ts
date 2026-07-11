@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users } from '@/lib/schema';
+import { users, sellerOnboarding } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
@@ -39,12 +39,18 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await db.insert(users).values({
+    const [newUser] = await db.insert(users).values({
       name: name.trim(),
       email: email.trim().toLowerCase(),
       password: hashedPassword,
       role,
-    });
+    }).returning({ id: users.id });
+
+    if (role === 'seller') {
+      await db.insert(sellerOnboarding).values({
+        userId: newUser.id,
+      });
+    }
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

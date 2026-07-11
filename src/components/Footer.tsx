@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="bg-[var(--neo-black)] text-white border-t-[4px] border-[var(--neo-accent)] py-10 mt-auto">
@@ -10,9 +12,18 @@ export default function Footer() {
             Pedia
           </span>
         </div>
-        <p className="text-sm opacity-70 font-medium mb-4">
+        <p className="text-sm opacity-70 font-medium mb-6">
           Marketplace  — Tugas Akhir © 2026
         </p>
+
+        <div className="flex flex-wrap justify-center gap-4 mb-8 text-sm font-bold">
+          <Link href="/about" className="hover:underline hover:text-[var(--neo-primary)]">Tentang Kami</Link>
+          <Link href="/privacy-policy" className="hover:underline hover:text-[var(--neo-primary)]">Kebijakan Privasi</Link>
+          <Link href="/terms-of-service" className="hover:underline hover:text-[var(--neo-primary)]">Syarat & Ketentuan</Link>
+          <Link href="/return-policy" className="hover:underline hover:text-[var(--neo-primary)]">Kebijakan Retur</Link>
+          <Link href="/faq" className="hover:underline hover:text-[var(--neo-primary)]">FAQ</Link>
+        </div>
+
         <div className="flex justify-center gap-3">
           <span className="neo-badge bg-[var(--neo-secondary)] text-white border-white/30 hover-wiggle cursor-default">
             Next.js

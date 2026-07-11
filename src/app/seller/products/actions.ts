@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { products, users, productImages } from '@/lib/schema';
+import { products, users, productImages, sellerOnboarding } from '@/lib/schema';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
@@ -49,6 +49,9 @@ export async function addProductAction(formData: FormData) {
     }));
     await db.insert(productImages).values(imagesToInsert);
   }
+
+  // Update status onboarding (hasFirstProduct)
+  await db.update(sellerOnboarding).set({ hasFirstProduct: true }).where(eq(sellerOnboarding.userId, sellerId));
   
   redirect('/seller/products');
 }

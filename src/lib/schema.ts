@@ -165,3 +165,12 @@ export const productImages = pgTable('product_images', {
   order: integer('order').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// Tabel Onboarding Seller
+export const sellerOnboarding = pgTable("seller_onboarding", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  hasStoreProfile: boolean("has_store_profile").default(false).notNull(),
+  hasFirstProduct: boolean("has_first_product").default(false).notNull(),
+  hasPaymentSetup: boolean("has_payment_setup").default(false).notNull(),
+  completedAt: timestamp("completed_at"),
+});
