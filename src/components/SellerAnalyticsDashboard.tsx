@@ -74,12 +74,12 @@ export default function SellerAnalyticsDashboard() {
       {/* Kartu Ringkasan */}
       <div className="grid grid-cols-2 gap-4">
         <div className="neo-card p-5 bg-[var(--neo-green)] hover-lift">
-          <p className="text-xs font-bold opacity-70 mb-1">💰 Pendapatan (30 hari)</p>
+          <p className="text-xs font-bold opacity-80 mb-1">💰 Pendapatan (30 hari)</p>
           <p className="text-2xl font-extrabold leading-tight">
             {formatRupiah(data?.summary?.totalRevenue ?? 0)}
           </p>
         </div>
-        <div className="neo-card p-5 bg-[var(--neo-primary)] text-white hover-lift">
+        <div className="neo-card p-5 bg-[var(--neo-green)] hover-lift">
           <p className="text-xs font-bold opacity-80 mb-1">🧾 Total Pesanan Lunas</p>
           <p className="text-2xl font-extrabold leading-tight">
             {data?.summary?.totalOrders ?? 0} pesanan
@@ -88,7 +88,7 @@ export default function SellerAnalyticsDashboard() {
       </div>
 
       {/* Grafik Pendapatan Harian */}
-      <div className="neo-card p-5 bg-[var(--neo-white)]">
+      <div className="neo-card p-5 bg-[var(--neo-green)]">
         <p className="text-base font-extrabold mb-4">📈 Grafik Pendapatan Harian (30 hari terakhir)</p>
         {(data?.dailyRevenue?.length ?? 0) === 0 ? (
           <div className="text-center py-10 opacity-50">
