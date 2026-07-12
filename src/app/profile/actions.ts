@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { users } from '@/lib/schema';
+import { users, sellerOnboarding } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -68,8 +68,16 @@ export async function updateMyProfile(data: {
     })
     .where(eq(users.id, userId));
 
-  revalidatePath('/customer/profile');
-  revalidatePath('/seller/profile');
+  // Jika seller mengisi nama toko, update onboarding hasStoreProfile
+  if ((auth.session?.user as any)?.role === 'seller' && data.storeName?.trim()) {
+    await db
+      .update(sellerOnboarding)
+      .set({ hasStoreProfile: true })
+      .where(eq(sellerOnboarding.userId, userId));
+  }
+
+  revalidatePath('/profile');
+  revalidatePath('/seller/dashboard');
 
   return { success: true };
 }

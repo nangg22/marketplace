@@ -26,6 +26,11 @@ export const users = pgTable('users', {
   storeName: varchar('store_name', { length: 255 }),
   storeDescription: text('store_description'),
 
+  // Info rekening pencairan (khusus seller)
+  bankName: varchar('bank_name', { length: 100 }),
+  bankAccountNumber: varchar('bank_account_number', { length: 50 }),
+  bankAccountName: varchar('bank_account_name', { length: 255 }),
+
   // Data alamat pengiriman customer
   recipientName: varchar('recipient_name', { length: 255 }),
   phone: varchar('phone', { length: 30 }),
