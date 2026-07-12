@@ -7,6 +7,10 @@ import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import OrderTimeline from '@/components/OrderTimeline';
+import RefundRequestForm from '@/components/RefundRequestForm';
+import { orderStatusHistory, refundRequests } from '@/lib/schema';
+import { asc } from 'drizzle-orm';
 
 export default async function CustomerOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -41,6 +45,19 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
   .from(orderItems)
   .leftJoin(products, eq(orderItems.productId, products.id))
   .where(eq(orderItems.orderId, orderId));
+
+  // Ambil data riwayat pesanan (timeline)
+  const history = await db.select()
+    .from(orderStatusHistory)
+    .where(eq(orderStatusHistory.orderId, orderId))
+    .orderBy(asc(orderStatusHistory.createdAt));
+
+  // Ambil data pengajuan retur (jika ada)
+  const refundReqs = await db.select()
+    .from(refundRequests)
+    .where(eq(refundRequests.orderId, orderId))
+    .limit(1);
+  const existingRefund = refundReqs[0];
 
   const formatRupiah = (price: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
@@ -103,6 +120,13 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
           </div>
         </div>
 
+        {/* Timeline Status */}
+        {history.length > 0 && (
+          <div className="mb-8">
+            <OrderTimeline history={history.map(h => ({ status: h.status, createdAt: h.createdAt.toISOString() }))} />
+          </div>
+        )}
+
         {/* Daftar Barang */}
         <div className="neo-card p-6 md:p-10 mb-8 animate-slide-up stagger-2">
           <h3 className="font-extrabold text-xl mb-6 flex items-center gap-2">
@@ -154,6 +178,31 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
             </div>
           </div>
         </div>
+
+        {/* Retur / Refund Section */}
+        {order.status === 'completed' && !existingRefund && (
+          <div className="mb-8">
+            <RefundRequestForm orderId={orderId} />
+          </div>
+        )}
+        
+        {existingRefund && (
+          <div className="neo-card p-6 mb-8 bg-blue-50">
+            <h3 className="font-extrabold text-lg flex items-center gap-2 mb-3">
+              <span>ℹ️</span> Status Pengajuan Retur
+            </h3>
+            <p className="text-sm font-semibold mb-2">
+              Status: <span className="uppercase font-extrabold">{existingRefund.status}</span>
+            </p>
+            <p className="text-sm">Alasan: {existingRefund.reason}</p>
+            {existingRefund.sellerResponse && (
+              <div className="mt-4 p-3 bg-white border-[2px] border-dashed border-[var(--neo-black)]/30 rounded-lg">
+                <p className="text-xs font-bold opacity-60 mb-1">Tanggapan Penjual:</p>
+                <p className="text-sm font-semibold">{existingRefund.sellerResponse}</p>
+              </div>
+            )}
+          </div>
+        )}
 
       </main>
 

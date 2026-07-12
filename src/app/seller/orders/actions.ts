@@ -5,6 +5,7 @@ import { orders, orderItems, products } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
 import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { updateOrderStatus } from '@/lib/orders';
 
 // Verifikasi bahwa order ini mengandung produk milik seller yang request
 async function verifySellerOwnsOrder(sellerId: string, orderId: string): Promise<boolean> {
@@ -36,10 +37,7 @@ export async function approveOrder(orderId: string) {
   const isOwner = await verifySellerOwnsOrder(sellerId, orderId);
   if (!isOwner) return { success: false, error: 'Forbidden: bukan pesanan Anda' };
 
-  await db
-    .update(orders)
-    .set({ status: 'processing' }) // processing, bukan langsung 'paid'
-    .where(eq(orders.id, orderId));
+  await updateOrderStatus(orderId, 'processing', 'Diproses oleh Penjual');
 
   revalidatePath('/seller/orders');
   revalidatePath('/seller/dashboard');
@@ -55,10 +53,7 @@ export async function cancelOrder(orderId: string) {
   const isOwner = await verifySellerOwnsOrder(sellerId, orderId);
   if (!isOwner) return { success: false, error: 'Forbidden: bukan pesanan Anda' };
 
-  await db
-    .update(orders)
-    .set({ status: 'cancelled' })
-    .where(eq(orders.id, orderId));
+  await updateOrderStatus(orderId, 'cancelled', 'Dibatalkan oleh Penjual');
 
   revalidatePath('/seller/orders');
   revalidatePath('/seller/dashboard');
@@ -74,10 +69,7 @@ export async function markShipped(orderId: string) {
   const isOwner = await verifySellerOwnsOrder(sellerId, orderId);
   if (!isOwner) return { success: false, error: 'Forbidden: bukan pesanan Anda' };
 
-  await db
-    .update(orders)
-    .set({ status: 'shipped' })
-    .where(eq(orders.id, orderId));
+  await updateOrderStatus(orderId, 'shipped', 'Dikirim oleh Penjual');
 
   revalidatePath('/seller/orders');
   revalidatePath('/seller/dashboard');

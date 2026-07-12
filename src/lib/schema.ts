@@ -179,3 +179,33 @@ export const sellerOnboarding = pgTable("seller_onboarding", {
   hasPaymentSetup: boolean("has_payment_setup").default(false).notNull(),
   completedAt: timestamp("completed_at"),
 });
+
+// Tabel Histori Status Pesanan (Order Timeline)
+export const orderStatusHistory = pgTable("order_status_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 50 }).notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Enum dan Tabel Refund Requests (Retur)
+export const refundStatusEnum = pgEnum("refund_status", [
+  "requested",
+  "under_review",
+  "approved",
+  "rejected",
+  "refunded",
+]);
+
+export const refundRequests = pgTable("refund_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  buyerId: uuid("buyer_id").notNull().references(() => users.id),
+  reason: text("reason").notNull(),
+  evidenceUrl: text("evidence_url"),
+  status: refundStatusEnum("status").default("requested").notNull(),
+  sellerResponse: text("seller_response"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

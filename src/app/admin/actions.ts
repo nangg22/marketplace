@@ -5,6 +5,7 @@ import { users, products, orders, orderItems } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
 import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { updateOrderStatus as updateOrderStatusHelper } from '@/lib/orders';
 
 // Helper: pastikan hanya admin yang bisa akses
 async function assertAdmin() {
@@ -107,9 +108,7 @@ export async function deleteProduct(productId: string) {
 
 export async function updateOrderStatus(orderId: string, status: string) {
   await assertAdmin();
-  await db.update(orders)
-    .set({ status })
-    .where(eq(orders.id, orderId));
+  await updateOrderStatusHelper(orderId, status, 'Diusahakan oleh Admin');
   revalidatePath('/admin/transactions');
   return { success: true };
 }

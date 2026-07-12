@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { orders } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { updateOrderStatus } from '@/lib/orders';
 
 export async function POST(req: Request) {
   try {
@@ -53,9 +54,7 @@ export async function POST(req: Request) {
 
     // 3. Update status pesanan di database
     if (order_id) {
-        await db.update(orders)
-            .set({ status: newStatus })
-            .where(eq(orders.id, order_id));
+        await updateOrderStatus(order_id, newStatus, 'Webhook Midtrans');
             
         console.log(`Order ${order_id} updated to ${newStatus}`);
     }
