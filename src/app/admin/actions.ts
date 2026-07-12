@@ -6,12 +6,15 @@ import { requireRole } from '@/lib/auth-guard';
 import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { updateOrderStatus as updateOrderStatusHelper } from '@/lib/orders';
+import { logAdminAction } from '@/lib/audit-log';
+import { AUDIT_ACTIONS } from '@/lib/audit-actions';
 
 // Helper: pastikan hanya admin yang bisa akses
 async function assertAdmin() {
   const auth = await requireRole(['admin']);
   if (!auth.ok) throw new Error('Forbidden');
-  return auth;
+  const adminId = (auth.session?.user as any)?.id as string;
+  return { auth, adminId };
 }
 
 // =============================================
@@ -19,47 +22,48 @@ async function assertAdmin() {
 // =============================================
 
 export async function banUser(userId: string, reason: string) {
-  await assertAdmin();
+  const { adminId } = await assertAdmin();
+  const before = await db.select({ isBanned: users.isBanned, banReason: users.banReason }).from(users).where(eq(users.id, userId)).limit(1);
   await db.update(users)
     .set({ isBanned: true, banReason: reason })
     .where(eq(users.id, userId));
+  await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.USER_BANNED, entityType: 'user', entityId: userId, before: before[0] as any, after: { isBanned: true, reason } });
   revalidatePath('/admin/users');
   return { success: true };
 }
 
 export async function unbanUser(userId: string) {
-  await assertAdmin();
+  const { adminId } = await assertAdmin();
   await db.update(users)
     .set({ isBanned: false, banReason: null })
     .where(eq(users.id, userId));
+  await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.USER_UNBANNED, entityType: 'user', entityId: userId, after: { isBanned: false } });
   revalidatePath('/admin/users');
   return { success: true };
 }
 
 export async function changeUserRole(userId: string, newRole: 'customer' | 'seller' | 'admin') {
-  await assertAdmin();
+  const { adminId } = await assertAdmin();
+  const before = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
   await db.update(users)
     .set({ role: newRole })
     .where(eq(users.id, userId));
+  await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.USER_ROLE_CHANGED, entityType: 'user', entityId: userId, before: before[0] as any, after: { role: newRole } });
   revalidatePath('/admin/users');
   return { success: true };
 }
 
 export async function deleteUser(userId: string) {
-  await assertAdmin();
+  const { adminId } = await assertAdmin();
 
-  // Hapus dalam urutan yang benar agar tidak melanggar FK:
-  // 1. Cari semua order milik user ini (sebagai customer)
   const userOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.customerId, userId));
   const orderIds = userOrders.map(o => o.id);
 
-  // 2. Hapus orderItems dari order-order tersebut
   if (orderIds.length > 0) {
     await db.delete(orderItems).where(inArray(orderItems.orderId, orderIds));
     await db.delete(orders).where(inArray(orders.id, orderIds));
   }
 
-  // 3. Hapus orderItems yang merujuk produk milik user ini (jika seller)
   const sellerProducts = await db.select({ id: products.id }).from(products).where(eq(products.sellerId, userId));
   if (sellerProducts.length > 0) {
     const productIds = sellerProducts.map(p => p.id);
@@ -67,8 +71,8 @@ export async function deleteUser(userId: string) {
     await db.delete(products).where(inArray(products.id, productIds));
   }
 
-  // 4. Hapus user
   await db.delete(users).where(eq(users.id, userId));
+  await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.USER_DELETED, entityType: 'user', entityId: userId });
   revalidatePath('/admin/users');
   return { success: true };
 }
@@ -78,26 +82,30 @@ export async function deleteUser(userId: string) {
 // =============================================
 
 export async function suspendProduct(productId: string, reason: string) {
-  await assertAdmin();
+  const { adminId } = await assertAdmin();
+  const before = await db.select({ isSuspended: products.isSuspended }).from(products).where(eq(products.id, productId)).limit(1);
   await db.update(products)
     .set({ isSuspended: true, suspendReason: reason, isAvailable: false })
     .where(eq(products.id, productId));
+  await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.PRODUCT_SUSPENDED, entityType: 'product', entityId: productId, before: before[0] as any, after: { isSuspended: true, reason } });
   revalidatePath('/admin/products');
   return { success: true };
 }
 
 export async function unsuspendProduct(productId: string) {
-  await assertAdmin();
+  const { adminId } = await assertAdmin();
   await db.update(products)
     .set({ isSuspended: false, suspendReason: null, isAvailable: true })
     .where(eq(products.id, productId));
+  await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.PRODUCT_UNSUSPENDED, entityType: 'product', entityId: productId, after: { isSuspended: false } });
   revalidatePath('/admin/products');
   return { success: true };
 }
 
 export async function deleteProduct(productId: string) {
-  await assertAdmin();
+  const { adminId } = await assertAdmin();
   await db.delete(products).where(eq(products.id, productId));
+  await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.PRODUCT_DELETED, entityType: 'product', entityId: productId });
   revalidatePath('/admin/products');
   return { success: true };
 }
@@ -107,8 +115,9 @@ export async function deleteProduct(productId: string) {
 // =============================================
 
 export async function updateOrderStatus(orderId: string, status: string) {
-  await assertAdmin();
+  const { adminId } = await assertAdmin();
   await updateOrderStatusHelper(orderId, status, 'Diusahakan oleh Admin');
+  await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.TRANSACTION_STATUS_UPDATED, entityType: 'order', entityId: orderId, after: { status } });
   revalidatePath('/admin/transactions');
   return { success: true };
 }

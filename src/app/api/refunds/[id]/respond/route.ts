@@ -6,13 +6,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { updateOrderStatus } from "@/lib/orders";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || (session.user as any).role !== 'seller') {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const sellerId = session.user.id;
+    const { id } = await params;
 
     const { status, sellerResponse } = await req.json();
     if (!["approved", "rejected"].includes(status)) {
@@ -20,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     // 1. Ambil detail refund request
-    const [refund] = await db.select().from(refundRequests).where(eq(refundRequests.id, params.id)).limit(1);
+    const [refund] = await db.select().from(refundRequests).where(eq(refundRequests.id, id)).limit(1);
     if (!refund) {
       return NextResponse.json({ error: "Refund request not found" }, { status: 404 });
     }
@@ -50,7 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const [updated] = await db
       .update(refundRequests)
       .set({ status, sellerResponse, updatedAt: new Date() })
-      .where(eq(refundRequests.id, params.id))
+      .where(eq(refundRequests.id, id))
       .returning();
 
     // 4. Jika "approved", ubah status order menjadi "refunded"

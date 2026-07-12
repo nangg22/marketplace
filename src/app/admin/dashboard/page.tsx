@@ -158,6 +158,28 @@ export default async function AdminDashboardPage() {
               </div>
             </div>
           </Link>
+
+          <Link href="/admin/categories">
+            <div className="neo-card p-6 bg-[var(--neo-accent)] text-[#1A1A2E] hover-lift cursor-pointer flex items-start gap-4">
+              <span className="text-5xl">🏷️</span>
+              <div>
+                <h3 className="font-extrabold text-xl mb-1">Kelola Kategori</h3>
+                <p className="text-sm font-semibold opacity-90">Tambah &amp; atur kategori produk</p>
+                <p className="text-xs opacity-70 mt-1">Tambah · Edit · Aktifkan · Hapus</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/admin/audit-logs">
+            <div className="neo-card p-6 bg-[var(--neo-secondary)] text-white hover-lift cursor-pointer flex items-start gap-4">
+              <span className="text-5xl">📋</span>
+              <div>
+                <h3 className="font-extrabold text-xl mb-1">Audit Log</h3>
+                <p className="text-sm font-semibold opacity-90">Riwayat semua aksi admin</p>
+                <p className="text-xs opacity-70 mt-1">Ban · Suspend · Refund · Kategori</p>
+              </div>
+            </div>
+          </Link>
         </div>
       </main>
 

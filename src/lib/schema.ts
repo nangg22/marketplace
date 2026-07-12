@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, integer, pgEnum, timestamp, boolean, real, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, pgEnum, timestamp, boolean, real, unique, jsonb } from 'drizzle-orm/pg-core';
 
 
 // 1. Definisikan Hak Akses (Role)
@@ -52,7 +52,8 @@ export const products = pgTable('products', {
   price: integer('price').notNull(),
   description: text('description'),
   imageUrl: varchar('image_url', { length: 255 }),
-  category: varchar('category', { length: 100 }).notNull().default('Lainnya'),
+  category: varchar('category', { length: 100 }).notNull().default('Lainnya'), // TODO: will be removed later after migration
+  categoryId: uuid("category_id"),
 
   stock: integer('stock').notNull().default(0),
   isAvailable: boolean('is_available').notNull().default(true),
@@ -208,4 +209,27 @@ export const refundRequests = pgTable("refund_requests", {
   sellerResponse: text("seller_response"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Tabel Kategori Produk
+export const categories = pgTable("categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  iconUrl: text("icon_url"),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Tabel Audit Log (Pencatatan Aktivitas Admin)
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: uuid("actor_id").references(() => users.id),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: varchar("entity_id", { length: 255 }).notNull(),
+  metadata: jsonb("metadata"),
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });

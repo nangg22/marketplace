@@ -1,10 +1,9 @@
 import { db } from '@/lib/db';
-import { products } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { products, categories } from '@/lib/schema';
+import { eq, asc } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
-import { CATEGORIES } from '@/app/products/page';
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -15,7 +14,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
   if (!product) redirect('/seller/products');
 
-  const productCategories = CATEGORIES.filter((c) => c.value !== '');
+  const productCategories = await db.select().from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.sortOrder), asc(categories.name));
 
   async function handleEdit(formData: FormData) {
     'use server';
@@ -144,8 +143,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
               </label>
               <select name="category" required className="neo-input" defaultValue={product.category}>
                 {productCategories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.icon} {cat.label}
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
                   </option>
                 ))}
               </select>

@@ -2,26 +2,22 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductsCard from '@/components/ProductCard';
 import { db } from '@/lib/db';
-import { products, users } from '@/lib/schema';
+import { products, users, categories } from '@/lib/schema';
 import { ilike, eq, asc, desc, and, gte, lte } from 'drizzle-orm';
 import Link from 'next/link';
 import PriceFilter from '@/components/PriceFilter';
 
-export const CATEGORIES = [
-  { label: 'Semua', icon: '🛍️', value: '' },
-  { label: 'Elektronik', icon: '📱', value: 'Elektronik' },
-  { label: 'Fashion Pria', icon: '👔', value: 'Fashion Pria' },
-  { label: 'Fashion Wanita', icon: '👗', value: 'Fashion Wanita' },
-  { label: 'Fashion Anak & Bayi', icon: '🧒', value: 'Fashion Anak & Bayi' },
-  { label: 'Rumah Tangga', icon: '🏠', value: 'Rumah Tangga' },
-  { label: 'Dapur', icon: '🍳', value: 'Dapur' },
-  { label: 'Buku', icon: '📚', value: 'Buku' },
-  { label: 'Olahraga', icon: '⚽', value: 'Olahraga' },
-  { label: 'Kecantikan', icon: '💄', value: 'Kecantikan' },
-  { label: 'Mainan', icon: '🧸', value: 'Mainan' },
-  { label: 'Otomotif', icon: '🚗', value: 'Otomotif' },
-  { label: 'Lainnya', icon: '📦', value: 'Lainnya' },
-];
+// Ikon default per slug kategori
+const CATEGORY_ICONS: Record<string, string> = {
+  'elektronik': '📱', 'fashion-pria': '👔', 'fashion-wanita': '👗',
+  'fashion-anak-bayi': '🧒', 'rumah-tangga': '🏠', 'dapur': '🍳',
+  'buku': '📚', 'olahraga': '⚽', 'kecantikan': '💄',
+  'mainan': '🧸', 'otomotif': '🚗', 'lainnya': '📦',
+};
+
+export function getCategoryIcon(slug: string) {
+  return CATEGORY_ICONS[slug] ?? '🏷️';
+}
 
 export default async function AllProductsPage({
   searchParams,
@@ -34,6 +30,13 @@ export default async function AllProductsPage({
   const q = params.q || '';
   const minPrice = params.minPrice;
   const maxPrice = params.maxPrice;
+
+  // Ambil kategori dari DB
+  const dbCategories = await db.select().from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.sortOrder), asc(categories.name));
+  const CATEGORIES = [
+    { label: 'Semua', icon: '🛍️', value: '', slug: '' },
+    ...dbCategories.map(c => ({ label: c.name, icon: getCategoryIcon(c.slug), value: c.name, slug: c.slug })),
+  ];
 
   // Build query — exclude produk yang di-suspend admin
   const baseSelect = db

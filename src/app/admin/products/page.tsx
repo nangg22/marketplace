@@ -59,7 +59,7 @@ export default async function AdminProductsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8 animate-slide-up stagger-1">
-          <div className="neo-card p-4 bg-[#FF6B35] text-white">
+          <div className="neo-card p-4 bg-[#FF6B35] text-[#1A1A2E]">
             <div className="text-3xl mb-1">📦</div>
             <div className="text-2xl font-extrabold">{allProducts.length}</div>
             <div className="text-xs font-bold opacity-90">Total Produk</div>
@@ -69,7 +69,7 @@ export default async function AdminProductsPage() {
             <div className="text-2xl font-extrabold">{active.length}</div>
             <div className="text-xs font-bold opacity-90">Aktif</div>
           </div>
-          <div className="neo-card p-4 bg-[#FF4081] text-white">
+          <div className="neo-card p-4 bg-[#FF4081] text-[#1A1A2E]">
             <div className="text-3xl mb-1">⏸️</div>
             <div className="text-2xl font-extrabold">{suspended.length}</div>
             <div className="text-xs font-bold opacity-90">Disuspend</div>
