@@ -101,7 +101,9 @@ export default function SellerAnalyticsDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
               <XAxis dataKey="date" fontSize={11} tick={{ fontWeight: 700 }} />
               <YAxis fontSize={11} tick={{ fontWeight: 700 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => [formatRupiah(v), "Pendapatan"]} />
+              <Tooltip
+                formatter={(value) => [formatRupiah(Number(value ?? 0)), "Pendapatan"]}
+              />
               <Line
                 type="monotone"
                 dataKey="revenue"
