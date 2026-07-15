@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { updateOrderStatus as updateOrderStatusHelper } from '@/lib/orders';
 import { logAdminAction } from '@/lib/audit-log';
 import { AUDIT_ACTIONS } from '@/lib/audit-actions';
+import { restoreStockOnCancel } from '@/lib/cancel-order';
 
 // Helper: pastikan hanya admin yang bisa akses
 async function assertAdmin() {
@@ -116,6 +117,21 @@ export async function deleteProduct(productId: string) {
 
 export async function updateOrderStatus(orderId: string, status: string) {
   const { adminId } = await assertAdmin();
+
+  // Jika status berubah ke 'cancelled', kembalikan stok
+  if (status === 'cancelled') {
+    const [order] = await db
+      .select({ status: orders.status })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    // Hanya kembalikan stok jika order belum shipped/delivered
+    if (order?.status !== 'shipped' && order?.status !== 'delivered') {
+      await restoreStockOnCancel(orderId);
+    }
+  }
+
   await updateOrderStatusHelper(orderId, status, 'Diusahakan oleh Admin');
   await logAdminAction({ actorId: adminId, action: AUDIT_ACTIONS.TRANSACTION_STATUS_UPDATED, entityType: 'order', entityId: orderId, after: { status } });
   revalidatePath('/admin/transactions');

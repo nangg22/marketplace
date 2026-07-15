@@ -3,7 +3,7 @@
 import { db } from '@/lib/db';
 import { orders, orderItems, products, users } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 type CartItemInput = {
@@ -243,6 +243,49 @@ export async function createOrder(
     });
   }
 
+  // Cek stok tersedia untuk setiap produk
+  const dbProductsWithStock = await db
+    .select({
+      id: products.id,
+      stock: products.stock,
+    })
+    .from(products)
+    .where(inArray(products.id, productIds));
+
+  const stockMap = new Map(
+    dbProductsWithStock.map((p) => [p.id, p.stock])
+  );
+
+  for (const item of verifiedItems) {
+    const currentStock = stockMap.get(item.id);
+    if (currentStock === undefined || currentStock < item.quantity) {
+      return {
+        success: false,
+        error: `Stok tidak mencukupi untuk produk yang dipilih. Stok tersisa: ${currentStock ?? 0}`,
+        status: 400,
+      };
+    }
+  }
+
+  // Kurangi stok secara atomic untuk setiap produk
+  for (const item of verifiedItems) {
+    const result = await db
+      .update(products)
+      .set({ stock: sql`${products.stock} - ${item.quantity}` })
+      .where(
+        sql`${products.id} = ${item.id} AND ${products.stock} >= ${item.quantity}`
+      )
+      .returning({ id: products.id });
+
+    if (result.length === 0) {
+      return {
+        success: false,
+        error: 'Stok produk berubah saat proses checkout. Silakan coba lagi.',
+        status: 400,
+      };
+    }
+  }
+
   const statusByPayment: Record<PaymentMethod, string> = {
     qris: 'paid',
     credit: 'awaiting_payment',
@@ -250,7 +293,6 @@ export async function createOrder(
   };
 
   try {
-    // Jangan gunakan db.transaction() karena Neon HTTP driver error.
     const [newOrder] = await db
       .insert(orders)
       .values({
@@ -293,6 +335,14 @@ export async function createOrder(
     };
   } catch (error) {
     console.error('Checkout gagal:', error);
+
+    // Rollback stok jika order gagal dibuat
+    for (const item of verifiedItems) {
+      await db
+        .update(products)
+        .set({ stock: sql`${products.stock} + ${item.quantity}` })
+        .where(eq(products.id, item.id));
+    }
 
     return {
       success: false,

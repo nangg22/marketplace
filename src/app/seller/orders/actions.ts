@@ -6,6 +6,7 @@ import { requireRole } from '@/lib/auth-guard';
 import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { updateOrderStatus } from '@/lib/orders';
+import { restoreStockOnCancel } from '@/lib/cancel-order';
 
 // Verifikasi bahwa order ini mengandung produk milik seller yang request
 async function verifySellerOwnsOrder(sellerId: string, orderId: string): Promise<boolean> {
@@ -52,6 +53,21 @@ export async function cancelOrder(orderId: string) {
 
   const isOwner = await verifySellerOwnsOrder(sellerId, orderId);
   if (!isOwner) return { success: false, error: 'Forbidden: bukan pesanan Anda' };
+
+  // Cek status order sebelum cancel
+  const [order] = await db
+    .select({ status: orders.status })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  // Jika order sudah dikirim/diterima, tidak boleh cancel
+  if (order?.status === 'shipped' || order?.status === 'delivered') {
+    return { success: false, error: 'Pesanan sudah dikirim/diterima, tidak bisa dibatalkan.' };
+  }
+
+  // Kembalikan stok produk
+  await restoreStockOnCancel(orderId);
 
   await updateOrderStatus(orderId, 'cancelled', 'Dibatalkan oleh Penjual');
 
