@@ -233,3 +233,15 @@ export const auditLogs = pgTable("audit_logs", {
   ipAddress: text("ip_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Tabel Notifikasi (untuk seller & customer)
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'new_order', 'order_paid', 'order_shipped', 'order_delivered', 'refund_requested', dll
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  orderId: uuid("order_id").references(() => orders.id),
+  isRead: boolean("is_read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

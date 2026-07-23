@@ -3,7 +3,7 @@
 import { db } from '@/lib/db';
 import { orders, orderItems, products } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { updateOrderStatus } from '@/lib/orders';
 import { restoreStockOnCancel } from '@/lib/cancel-order';
@@ -22,10 +22,10 @@ async function verifySellerOwnsOrder(sellerId: string, orderId: string): Promise
   const matchingItems = await db
     .select({ orderId: orderItems.orderId })
     .from(orderItems)
-    .where(inArray(orderItems.productId, myProductIds))
+    .where(and(inArray(orderItems.productId, myProductIds), eq(orderItems.orderId, orderId)))
     .limit(1);
 
-  return matchingItems.some((item) => item.orderId === orderId);
+  return matchingItems.length > 0;
 }
 
 export async function approveOrder(orderId: string) {
@@ -38,10 +38,57 @@ export async function approveOrder(orderId: string) {
   const isOwner = await verifySellerOwnsOrder(sellerId, orderId);
   if (!isOwner) return { success: false, error: 'Forbidden: bukan pesanan Anda' };
 
+  // Cek status order
+  const [order] = await db
+    .select({ status: orders.status, paymentMethod: orders.paymentMethod })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  // Validasi status yang bisa di-approve
+  const approvableStatuses = ['paid', 'pending_cod'];
+  if (!order?.status || !approvableStatuses.includes(order.status)) {
+    return { success: false, error: 'Status pesanan tidak bisa di-approve.' };
+  }
+
   await updateOrderStatus(orderId, 'processing', 'Diproses oleh Penjual');
 
   revalidatePath('/seller/orders');
   revalidatePath('/seller/dashboard');
+  return { success: true };
+}
+
+export async function confirmCodPayment(orderId: string) {
+  const auth = await requireRole(['seller']) as any;
+  if (!auth.ok) return { success: false, error: 'Unauthorized' };
+
+  const sellerId = auth.session?.user?.id;
+
+  // Pastikan order ini memang mengandung produk milik seller ini
+  const isOwner = await verifySellerOwnsOrder(sellerId, orderId);
+  if (!isOwner) return { success: false, error: 'Forbidden: bukan pesanan Anda' };
+
+  // Cek status order
+  const [order] = await db
+    .select({ status: orders.status, paymentMethod: orders.paymentMethod })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  // Hanya bisa konfirmasi COD jika status delivered (barang sudah diterima buyer)
+  if (order?.paymentMethod !== 'cod') {
+    return { success: false, error: 'Bukan pesanan COD.' };
+  }
+
+  if (order?.status !== 'delivered') {
+    return { success: false, error: 'Barang belum dikonfirmasi diterima oleh pembeli.' };
+  }
+
+  await updateOrderStatus(orderId, 'completed', 'Pembayaran COD diterima, pesanan selesai');
+
+  revalidatePath('/seller/orders');
+  revalidatePath('/seller/dashboard');
+  revalidatePath('/customer/orders');
   return { success: true };
 }
 
@@ -89,5 +136,6 @@ export async function markShipped(orderId: string) {
 
   revalidatePath('/seller/orders');
   revalidatePath('/seller/dashboard');
+  revalidatePath('/customer/orders');
   return { success: true };
 }

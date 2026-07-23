@@ -1,24 +1,31 @@
-// NOTE: Ini adalah konfigurasi placeholder untuk Midtrans
-// Untuk implementasi sungguhan, Anda perlu meng-install 'midtrans-client'
-// npm install midtrans-client
+// ===== SIMULASI PEMBAYARAN =====
+// File ini sebelumnya menggunakan Midtrans SDK.
+// Sekarang diganti dengan simulasi pembayaran (mock).
+// Tidak ada integrasi payment gateway yang sebenarnya.
 
-/*
-import midtransClient from 'midtrans-client';
+export interface SimulatedPaymentResponse {
+  redirect_url: string;
+  token: string;
+}
 
-export const snap = new midtransClient.Snap({
-  isProduction: false,
-  serverKey: process.env.MIDTRANS_SERVER_KEY,
-  clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY
-});
+/**
+ * Simulasi pembayaran — mengembalikan redirect URL ke halaman simulasi
+ * yang akan auto-complete pembayaran.
+ */
+export function createSimulatedTransaction(
+  orderId: string,
+  grossAmount: number
+): SimulatedPaymentResponse {
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  return {
+    redirect_url: `${baseUrl}/api/payment/simulate?order_id=${orderId}&amount=${grossAmount}`,
+    token: `SIMULATED_${orderId}`,
+  };
+}
 
-export const coreApi = new midtransClient.CoreApi({
-  isProduction: false,
-  serverKey: process.env.MIDTRANS_SERVER_KEY,
-  clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY
-});
-*/
-
-export const midtransConfig = {
-  isMock: true,
-  message: 'Ini adalah simulasi, untuk transaksi sungguhan hubungkan ke akun Midtrans Anda.',
-};
+/**
+ * Simulasi verifikasi pembayaran — selalu berhasil.
+ */
+export function verifySimulatedPayment(_orderId: string): boolean {
+  return true;
+}

@@ -31,13 +31,15 @@ export default function SellerAnalyticsDashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/seller/analytics").then((r) => r.json()),
-      fetch("/api/seller/low-stock").then((r) => r.json()),
-    ]).then(([analyticsData, lowStockData]) => {
-      setData(analyticsData);
-      setLowStock(lowStockData.items ?? []);
-      setLoading(false);
-    });
+      fetch("/api/seller/analytics").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/seller/low-stock").then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([analyticsData, lowStockData]) => {
+        setData(analyticsData);
+        setLowStock(lowStockData?.items ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {

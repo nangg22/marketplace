@@ -171,7 +171,7 @@ export default async function AdminDashboardPage() {
           </Link>
 
           <Link href="/admin/audit-logs">
-            <div className="neo-card p-6 bg-[var(--neo-secondary)] text-white hover-lift cursor-pointer flex items-start gap-4">
+            <div className="neo-card p-6 bg-[var(--neo-secondary)] text-[#1A1A2E] hover-lift cursor-pointer flex items-start gap-4">
               <span className="text-5xl">📋</span>
               <div>
                 <h3 className="font-extrabold text-xl mb-1">Audit Log</h3>

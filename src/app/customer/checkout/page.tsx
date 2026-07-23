@@ -79,9 +79,9 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleSimulasiBayar = async () => {
+  const handleBayar = async () => {
     if (!address?.recipientName) {
-      alert('❌ Lengkapi alamat pengiriman terlebih dahulu!');
+      alert('Lengkapi alamat pengiriman terlebih dahulu!');
       setShowPaymentModal(false);
       setShowAddressForm(true);
       return;
@@ -98,34 +98,44 @@ export default function CheckoutPage() {
       const result = (await createOrder(itemsForAction, paymentMethod)) as any;
 
       if (!result?.success) {
-        alert(`❌ ${result?.error || 'Terjadi kesalahan.'}`);
+        alert(`${result?.error || 'Terjadi kesalahan.'}`);
         if (result?.status === 401) {
           router.push('/login');
         }
+        setIsProcessing(false);
         return;
       }
 
-      setPaymentSuccess(true);
+      // === QRIS / Kartu Kredit: Redirect ke halaman simulasi pembayaran ===
+      if (result.redirect_url) {
+        // Cart akan di-clear setelah payment confirmed di payment simulation page
+        window.location.href = result.redirect_url;
+        return;
+      }
+
+      // === COD: Clear cart sekarang — order sudah dibuat dan tidak perlu payment confirm ===
       clearCart();
 
+      // === COD: Langsung ke halaman order ===
+      setPaymentSuccess(true);
       setTimeout(() => {
-        alert('🎉 Pesanan Berhasil Diproses!');
+        alert('Pesanan Berhasil Diproses!');
         setShowPaymentModal(false);
-        router.push('/customer/orders');
+        router.push(`/customer/orders/${result.orderId}`);
       }, 1500);
     } catch (error) {
-      alert('❌ Terjadi kesalahan saat memproses pembayaran.');
+      alert('Terjadi kesalahan saat memproses pembayaran.');
       console.error(error);
-    } finally {
       setIsProcessing(false);
     }
   };
+
   if (status === 'loading') {
     return (
       <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
         <Navbar />
         <main className="flex-grow flex items-center justify-center p-4">
-          <div className="text-xl font-extrabold animate-pulse">⏳ Memuat...</div>
+          <div className="text-xl font-extrabold animate-pulse">Memuat...</div>
         </main>
       </div>
     );
@@ -208,7 +218,7 @@ export default function CheckoutPage() {
               </h2>
 
               {addressLoading ? (
-                <div className="py-4 text-sm font-bold opacity-60">⏳ Memuat alamat...</div>
+                <div className="py-4 text-sm font-bold opacity-60">Memuat alamat...</div>
               ) : showAddressForm ? (
                 <form onSubmit={handleSaveAddress} className="space-y-3">
                   {addressError && (
@@ -299,7 +309,7 @@ export default function CheckoutPage() {
                   <input type="radio" name="paymentMethod" value="qris" checked={paymentMethod === 'qris'} onChange={() => setPaymentMethod('qris')} className="w-5 h-5 accent-[var(--neo-black)] flex-shrink-0" />
                   <div>
                     <span className="font-extrabold text-lg block">QRIS</span>
-                    <span className="text-xs font-bold opacity-60">Otomatis dicek, cepat &amp; mudah!</span>
+                    <span className="text-xs font-bold opacity-60">Scan QR dari m-banking atau e-wallet</span>
                   </div>
                   <div className="ml-auto text-3xl opacity-50 flex-shrink-0">📱</div>
                 </label>
@@ -309,7 +319,7 @@ export default function CheckoutPage() {
                   <input type="radio" name="paymentMethod" value="credit" checked={paymentMethod === 'credit'} onChange={() => setPaymentMethod('credit')} className="w-5 h-5 accent-[var(--neo-black)] flex-shrink-0" />
                   <div>
                     <span className="font-extrabold text-lg block">Kartu Debit/Kredit</span>
-                    <span className="text-xs font-bold opacity-60">Pembayaran instan via kartu.</span>
+                    <span className="text-xs font-bold opacity-60">Visa, Mastercard, JCB</span>
                   </div>
                   <div className="ml-auto text-3xl opacity-50 flex-shrink-0">💳</div>
                 </label>
@@ -319,7 +329,7 @@ export default function CheckoutPage() {
                   <input type="radio" name="paymentMethod" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} className="w-5 h-5 accent-[var(--neo-black)] flex-shrink-0" />
                   <div>
                     <span className="font-extrabold text-lg block">Cash on Delivery (COD)</span>
-                    <span className="text-xs font-bold opacity-60">Bayar saat pesanan tiba.</span>
+                    <span className="text-xs font-bold opacity-60">Bayar saat pesanan tiba</span>
                   </div>
                   <div className="ml-auto text-3xl opacity-50 flex-shrink-0">📦</div>
                 </label>
@@ -369,7 +379,7 @@ export default function CheckoutPage() {
         </div>
       </main>
 
-      {/* POP-UP MODAL */}
+      {/* POP-UP KONFIRMASI SEBELUM BAYAR */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-[var(--neo-black)]/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="neo-card max-w-sm w-full p-8 text-center animate-bounce-in relative">
@@ -381,42 +391,24 @@ export default function CheckoutPage() {
               ✕
             </button>
 
+            <h3 className="font-extrabold text-2xl mb-2">
+              {paymentMethod === 'cod' ? 'Konfirmasi Pesanan' : 'Konfirmasi Pembayaran'}
+            </h3>
+
             {paymentMethod === 'qris' && (
-              <>
-                <h3 className="font-extrabold text-2xl mb-2">Scan QRIS</h3>
-                <p className="font-semibold opacity-70 text-sm mb-6">
-                  Buka aplikasi m-banking atau e-wallet Anda.
-                </p>
-                <div className="bg-white p-4 border-[3px] border-[var(--neo-black)] rounded-xl inline-block mb-6 shadow-[4px_4px_0px_var(--neo-primary)] rotate-[1deg] hover:rotate-0 transition-transform">
-                  <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SimulasiPembayaranTugasAkhir"
-                    alt="QRIS Code"
-                    className="mx-auto"
-                  />
-                </div>
-              </>
+              <p className="font-semibold opacity-70 text-sm mb-6">
+                Pembayaran QRIS akan diproses secara otomatis.
+              </p>
             )}
-
             {paymentMethod === 'credit' && (
-              <>
-                <h3 className="font-extrabold text-2xl mb-2">Debit / Kredit</h3>
-                <p className="font-semibold opacity-70 text-sm mb-6">Masukkan detail kartu Anda.</p>
-                <div className="flex flex-col gap-3 mb-6 text-left">
-                  <input type="text" placeholder="Nomor Kartu" className="neo-input" defaultValue="4111 1111 1111 1111" />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input type="text" placeholder="MM/YY" className="neo-input" defaultValue="12/26" />
-                    <input type="text" placeholder="CVV" className="neo-input" defaultValue="123" />
-                  </div>
-                </div>
-              </>
+              <p className="font-semibold opacity-70 text-sm mb-6">
+                Pembayaran kartu debit/kredit akan diproses secara otomatis.
+              </p>
             )}
-
             {paymentMethod === 'cod' && (
-              <>
-                <h3 className="font-extrabold text-2xl mb-2">Konfirmasi COD</h3>
-                <p className="font-semibold opacity-70 text-sm mb-6">Siapkan uang pas saat kurir tiba di alamat Anda.</p>
-                <div className="text-6xl mb-6">🛵</div>
-              </>
+              <p className="font-semibold opacity-70 text-sm mb-6">
+                Siapkan uang pas saat kurir tiba di alamat Anda.
+              </p>
             )}
 
             <div className="mb-6">
@@ -431,11 +423,15 @@ export default function CheckoutPage() {
               </div>
             ) : (
               <button
-                onClick={handleSimulasiBayar}
+                onClick={handleBayar}
                 disabled={isProcessing}
                 className="neo-btn neo-btn-secondary w-full py-3 text-lg disabled:opacity-50"
               >
-                {isProcessing ? '⏳ Memproses...' : (paymentMethod === 'cod' ? '✨ Konfirmasi Pesanan' : '✨ Simulasi Bayar')}
+                {isProcessing
+                  ? '⏳ Memproses...'
+                  : paymentMethod === 'cod'
+                    ? '✨ Konfirmasi Pesanan'
+                    : '✨ Bayar Sekarang'}
               </button>
             )}
           </div>

@@ -24,7 +24,7 @@ export async function addProductAction(formData: FormData) {
   try {
     images = JSON.parse(imagesRaw);
   } catch (e) {
-    console.error("Gagal parse images JSON");
+    // JSON parse failed, images will remain empty array
   }
 
   // Tentukan gambar utama

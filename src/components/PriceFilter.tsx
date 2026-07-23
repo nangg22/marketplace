@@ -10,7 +10,7 @@ const PRESETS = [
   { label: "Di atas Rp500rb", min: 500000, max: undefined },
 ];
 
-export default function PriceFilter() {
+export default function PriceFilter({ className = "" }: { className?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -20,31 +20,43 @@ export default function PriceFilter() {
 
   function applyFilter(newMin?: string | number, newMax?: string | number) {
     const params = new URLSearchParams(searchParams.toString());
-    if (newMin !== undefined && newMin !== "") params.set("minPrice", String(newMin)); 
+    if (newMin !== undefined && newMin !== "") params.set("minPrice", String(newMin));
     else params.delete("minPrice");
-    
-    if (newMax !== undefined && newMax !== "") params.set("maxPrice", String(newMax)); 
+
+    if (newMax !== undefined && newMax !== "") params.set("maxPrice", String(newMax));
     else params.delete("maxPrice");
-    
+
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  // Check if any filter is active (for highlighting preset buttons)
+  const activePreset = PRESETS.find(
+    (p) => String(p.min) === min && (p.max === undefined ? !max : String(p.max) === max)
+  );
+
   return (
-    <div className="w-56 shrink-0 neo-card p-4">
+    <div className={`neo-card p-4 ${className}`}>
       <p className="font-extrabold text-sm mb-3 uppercase tracking-wider text-[var(--neo-black)] border-b-2 border-[var(--neo-black)] pb-2">
         💰 Filter Harga
       </p>
       
-      <div className="space-y-2 mb-4">
-        {PRESETS.map((p) => (
-          <button
-            key={p.label}
-            onClick={() => applyFilter(p.min, p.max)}
-            className="block w-full text-left text-sm font-bold opacity-70 hover:opacity-100 hover:text-[var(--neo-primary)] transition-colors py-1"
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="space-y-1 mb-4">
+        {PRESETS.map((p) => {
+          const isActive = activePreset?.label === p.label;
+          return (
+            <button
+              key={p.label}
+              onClick={() => applyFilter(p.min, p.max)}
+              className={`block w-full text-left text-sm font-bold py-1.5 px-2 rounded-lg transition-colors
+                ${isActive
+                  ? 'bg-[var(--neo-primary)] text-white'
+                  : 'opacity-70 hover:opacity-100 hover:text-[var(--neo-primary)] hover:bg-[var(--neo-gray)]'
+                }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
       </div>
       
       <div className="flex items-center gap-2 mb-3">

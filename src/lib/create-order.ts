@@ -43,14 +43,15 @@ export async function createOrderWithStockCheck(opts: CreateOrderOptions) {
       }
     }
 
-    // 2. Buat order (sesuai skema: customerId, customerName, totalAmount, status)
+    // 2. Buat order — COD langsung pakai status "pending_cod"
+    const isCod = (opts.paymentMethod ?? "qris") === "cod";
     const [order] = await tx
       .insert(orders)
       .values({
         customerId: opts.customerId,
         customerName: opts.customerName,
         totalAmount: opts.totalAmount,
-        status: "pending",
+        status: isCod ? "pending_cod" : "pending",
         paymentMethod: opts.paymentMethod ?? "qris",
         recipientName: opts.recipientName,
         phone: opts.phone,

@@ -5,6 +5,7 @@ import { orders, orderItems, products, users } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { notifySellerNewOrder } from '@/lib/notifications';
 
 type CartItemInput = {
   id: string;
@@ -267,39 +268,33 @@ export async function createOrder(
     }
   }
 
-  // Kurangi stok secara atomic untuk setiap produk
-  for (const item of verifiedItems) {
-    const result = await db
-      .update(products)
-      .set({ stock: sql`${products.stock} - ${item.quantity}` })
-      .where(
-        sql`${products.id} = ${item.id} AND ${products.stock} >= ${item.quantity}`
-      )
-      .returning({ id: products.id });
+  // Status awal: pending_cod untuk COD, pending untuk metode lain
+  const initialStatus = paymentMethod === 'cod' ? 'pending_cod' : 'pending';
 
-    if (result.length === 0) {
-      return {
-        success: false,
-        error: 'Stok produk berubah saat proses checkout. Silakan coba lagi.',
-        status: 400,
-      };
+  // Wrap stock decrement + order creation dalam satu transaksi
+  const result = await db.transaction(async (tx) => {
+    // Kurangi stok secara atomic untuk setiap produk
+    for (const item of verifiedItems) {
+      const stockResult = await tx
+        .update(products)
+        .set({ stock: sql`${products.stock} - ${item.quantity}` })
+        .where(
+          sql`${products.id} = ${item.id} AND ${products.stock} >= ${item.quantity}`
+        )
+        .returning({ id: products.id });
+
+      if (stockResult.length === 0) {
+        throw new Error('STOCK_CHANGED');
+      }
     }
-  }
 
-  const statusByPayment: Record<PaymentMethod, string> = {
-    qris: 'paid',
-    credit: 'awaiting_payment',
-    cod: 'pending_cod',
-  };
-
-  try {
-    const [newOrder] = await db
+    const [newOrder] = await tx
       .insert(orders)
       .values({
         customerId,
         customerName,
         totalAmount: serverTotalAmount,
-        status: statusByPayment[paymentMethod],
+        status: initialStatus,
         paymentMethod,
 
         shippingRecipientName: customer.recipientName,
@@ -312,11 +307,7 @@ export async function createOrder(
       .returning();
 
     if (!newOrder) {
-      return {
-        success: false,
-        error: 'Pesanan gagal dibuat.',
-        status: 500,
-      };
+      throw new Error('ORDER_FAILED');
     }
 
     const itemsToInsert = verifiedItems.map((item) => ({
@@ -326,28 +317,69 @@ export async function createOrder(
       priceAtPurchase: item.price,
     }));
 
-    await db.insert(orderItems).values(itemsToInsert);
+    await tx.insert(orderItems).values(itemsToInsert);
+
+    return newOrder;
+  });
+
+  if (!result) {
+    return {
+      success: false,
+      error: 'Stok produk berubah saat proses checkout. Silakan coba lagi.',
+      status: 400,
+    };
+  }
+
+  const newOrder = result;
+
+  // === KIRIM NOTIFIKASI KE SELLER ===
+  // Ambil sellerId dari setiap produk yang dipesan
+  const productsWithSeller = await db
+    .select({ id: products.id, sellerId: products.sellerId })
+    .from(products)
+    .where(inArray(products.id, productIds));
+
+  // Group by sellerId untuk kirim notifikasi ke masing-masing seller
+  const sellerProductMap = new Map<string, string[]>();
+  for (const p of productsWithSeller) {
+    const existing = sellerProductMap.get(p.sellerId) || [];
+    sellerProductMap.set(p.sellerId, [...existing, p.id]);
+  }
+
+  // Kirim notifikasi ke setiap seller
+  for (const [sellerId, sellerProductIds] of sellerProductMap) {
+    // Hitung total yang dibeli produk seller ini
+    const sellerTotal = verifiedItems
+      .filter((item) => sellerProductIds.includes(item.id))
+      .reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    await notifySellerNewOrder(
+      newOrder.id,
+      sellerId,
+      customerName,
+      sellerTotal
+    );
+  }
+
+  // === SIMULASI PEMBAYARAN ===
+  // Untuk QRIS dan Kartu: redirect ke halaman simulasi yang akan auto-complete
+  if (['qris', 'credit'].includes(paymentMethod)) {
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const redirectUrl = `${baseUrl}/api/payment/simulate?order_id=${newOrder.id}&amount=${serverTotalAmount}`;
 
     return {
       success: true,
       orderId: newOrder.id,
       paymentMethod,
-    };
-  } catch (error) {
-    console.error('Checkout gagal:', error);
-
-    // Rollback stok jika order gagal dibuat
-    for (const item of verifiedItems) {
-      await db
-        .update(products)
-        .set({ stock: sql`${products.stock} + ${item.quantity}` })
-        .where(eq(products.id, item.id));
-    }
-
-    return {
-      success: false,
-      error: 'Checkout gagal diproses. Silakan coba lagi.',
-      status: 500,
+      redirect_url: redirectUrl,
     };
   }
+
+  // === COD: Tidak perlu redirect ===
+  return {
+    success: true,
+    orderId: newOrder.id,
+    paymentMethod,
+    redirect_url: null,
+  };
 }

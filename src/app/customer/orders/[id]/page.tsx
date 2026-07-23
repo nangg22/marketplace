@@ -11,6 +11,8 @@ import OrderTimeline from '@/components/OrderTimeline';
 import RefundRequestForm from '@/components/RefundRequestForm';
 import { orderStatusHistory, refundRequests } from '@/lib/schema';
 import { asc } from 'drizzle-orm';
+import PayNowButton from './PayNowButton';
+import ConfirmDeliveryButton from '@/components/ConfirmDeliveryButton';
 
 export default async function CustomerOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -88,12 +90,28 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
               <p className="font-mono text-sm opacity-60">ID: {order.id}</p>
             </div>
             <div className="text-left md:text-right">
-              <span className={`neo-sticker text-sm px-3 py-1 rotate-0 ${
-                order.status === 'paid' ? 'bg-[var(--neo-green)]' : 'bg-[var(--neo-accent)]'
-              }`}>
-                {order.status === 'paid' ? '✅ Status: LUNAS' : '⏳ Status: PENDING'}
-              </span>
+              {(() => {
+                const statusMap: Record<string, { label: string; color: string }> = {
+                  pending: { label: '⏳ Menunggu Pembayaran', color: 'bg-[var(--neo-accent)]' },
+                  paid: { label: '✅ Lunas', color: 'bg-[var(--neo-green)]' },
+                  processing: { label: '🔄 Diproses', color: 'bg-blue-100' },
+                  shipped: { label: '🚚 Dikirim', color: 'bg-[var(--neo-secondary)] text-white' },
+                  delivered: { label: '📬 Diterima', color: 'bg-green-400 text-white' },
+                  completed: { label: '🎉 Selesai', color: 'bg-[var(--neo-primary)] text-white' },
+                  cancelled: { label: '❌ Dibatalkan', color: 'bg-[var(--neo-pink)] text-white' },
+                  failed: { label: '❌ Pembayaran Gagal', color: 'bg-red-400 text-white' },
+                  refunded: { label: '↩️ Refund', color: 'bg-gray-300' },
+                  pending_cod: { label: '🛵 COD Menunggu', color: 'bg-orange-200' },
+                };
+                const s = statusMap[order.status] || { label: order.status, color: 'bg-gray-200' };
+                return (
+                  <span className={`neo-sticker text-sm px-3 py-1 rotate-0 ${s.color}`}>
+                    {s.label}
+                  </span>
+                );
+              })()}
               <p className="font-bold text-sm opacity-70 mt-3">{formatDate(order.createdAt)}</p>
+              <p className="text-xs opacity-50 mt-1 capitalize">Metode: {order.paymentMethod}</p>
             </div>
           </div>
 
@@ -118,12 +136,60 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
               )}
             </div>
           </div>
+
+          {/* Tombol Bayar untuk order pending dengan metode online */}
+          {order.status === 'pending' && ['qris', 'credit'].includes(order.paymentMethod) && (
+            <div className="mt-6 p-4 bg-yellow-50 border-[2px] border-yellow-400 rounded-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="font-extrabold">Menunggu Pembayaran</p>
+                  <p className="text-sm font-semibold opacity-70">Selesaikan pembayaran sebelum expired (24 jam).</p>
+                </div>
+              </div>
+              <PayNowButton orderId={order.id} paymentMethod={order.paymentMethod} />
+            </div>
+          )}
+
+          {/* Info metode pembayaran untuk order COD */}
+          {order.status === 'pending_cod' && (
+            <div className="mt-6 p-4 bg-blue-50 border-[2px] border-blue-300 rounded-xl">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📦</span>
+                <div>
+                  <p className="font-extrabold">Cash on Delivery</p>
+                  <p className="text-sm font-semibold opacity-70">Siapkan uang pas saat kurir tiba di alamat Anda.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Info COD: Barang sudah dikonfirmasi diterima, menunggu penjual konfirmasi pembayaran */}
+          {order.paymentMethod === 'cod' && order.status === 'delivered' && (
+            <div className="mt-6 p-4 bg-green-50 border-[2px] border-green-400 rounded-xl">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">✅</span>
+                <div>
+                  <p className="font-extrabold">Barang Sudah Anda Konfirmasi Diterima</p>
+                  <p className="text-sm font-semibold opacity-70">Penjual sedang memverifikasi pembayaran COD Anda. Pesanan akan selesai setelah dikonfirmasi.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tombol Konfirmasi Penerimaan Barang */}
+          {order.status === 'shipped' && (
+            <ConfirmDeliveryButton orderId={order.id} />
+          )}
         </div>
 
         {/* Timeline Status */}
         {history.length > 0 && (
           <div className="mb-8">
             <OrderTimeline history={history.map(h => ({ status: h.status, createdAt: h.createdAt.toISOString() }))} />
+            <Link href={`/customer/orders/${orderId}/tracking`} className="mt-4 inline-flex items-center gap-2 neo-btn neo-btn-outline py-2 px-4 text-sm font-bold">
+              📍 Lihat Tracking Lengkap
+            </Link>
           </div>
         )}
 

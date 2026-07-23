@@ -1,18 +1,26 @@
 import { db } from '@/lib/db';
 import { products, categories } from '@/lib/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { requireRole } from '@/lib/auth-guard';
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireRole(['seller']);
+  if (!auth.ok) {
+    redirect(auth.status === 401 ? '/login' : '/');
+  }
+  const sellerId = (auth.session?.user as any).id;
+
   const resolvedParams = await params;
   const productId = resolvedParams.id;
 
   const result = await db.select().from(products).where(eq(products.id, productId)).limit(1);
   const product = result[0];
 
-  if (!product) redirect('/seller/products');
+  // Pastikan produk ada dan milik seller ini
+  if (!product || product.sellerId !== sellerId) redirect('/seller/products');
 
   const productCategories = await db.select().from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.sortOrder), asc(categories.name));
 
@@ -27,9 +35,13 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     // ✅ Checkbox: ada di formData = true, tidak ada = false
     const isAvailable = formData.get('isAvailable') === 'on';
 
+    const actionAuth = await requireRole(['seller']);
+    if (!actionAuth.ok) return;
+    const currentSellerId = (actionAuth.session?.user as any).id;
+
     await db.update(products)
       .set({ name, price, stock, description, imageUrl, category, isAvailable })
-      .where(eq(products.id, productId));
+      .where(and(eq(products.id, productId), eq(products.sellerId, currentSellerId)));
 
     redirect('/seller/products');
   }

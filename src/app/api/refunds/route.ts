@@ -48,7 +48,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(refund, { status: 201 });
   } catch (error: any) {
-    console.error("Refund Request Error:", error);
     return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
   }
 }

@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { getMyProfile, updateMyProfile } from './actions';
+import { getMyProfile, updateMyProfile, updateMyEmail, changeMyPassword } from './actions';
 import { getMyShippingAddress, saveShippingAddress } from '@/app/customer/checkout/actions';
 
 type Tab = 'biodata' | 'address' | 'store' | 'security';
@@ -44,6 +44,10 @@ export default function ProfilePage() {
   const [addressSaving, setAddressSaving] = useState(false);
   const [addressMsg, setAddressMsg] = useState({ text: '', ok: true });
 
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [securityMsg, setSecurityMsg] = useState({ text: '', ok: true });
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
@@ -73,6 +77,11 @@ export default function ProfilePage() {
     setTimeout(() => setAddressMsg({ text: '', ok: true }), 3500);
   };
 
+  const showSecurityMsg = (text: string, ok: boolean) => {
+    setSecurityMsg({ text, ok });
+    setTimeout(() => setSecurityMsg({ text: '', ok: true }), 3500);
+  };
+
   const handleSaveBiodata = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
@@ -90,7 +99,7 @@ export default function ProfilePage() {
     });
     if (result.success) {
       showMsg('✅ Profil berhasil diperbarui!', true);
-      // Refresh profile data
+      await updateSession({ name: result.name });
       const profileRes = await getMyProfile();
       if (profileRes.success && profileRes.profile) setProfile(profileRes.profile as Profile);
     } else {
@@ -118,6 +127,46 @@ export default function ProfilePage() {
       showAddressMsg(`❌ ${result.error}`, false);
     }
     setAddressSaving(false);
+  };
+
+  const handleChangeEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    setEmailSaving(true);
+    const f = new FormData(form);
+    const result = await updateMyEmail({
+      email: f.get('email') as string,
+      currentPassword: f.get('currentPassword') as string,
+    });
+    if (result.success) {
+      showSecurityMsg('✅ Email berhasil diperbarui!', true);
+      await updateSession({ email: result.email });
+      const profileRes = await getMyProfile();
+      if (profileRes.success && profileRes.profile) setProfile(profileRes.profile as Profile);
+      form.reset();
+    } else {
+      showSecurityMsg(`❌ ${result.error}`, false);
+    }
+    setEmailSaving(false);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    setPasswordSaving(true);
+    const f = new FormData(form);
+    const result = await changeMyPassword({
+      currentPassword: f.get('currentPassword') as string,
+      newPassword: f.get('newPassword') as string,
+      confirmPassword: f.get('confirmPassword') as string,
+    });
+    if (result.success) {
+      showSecurityMsg('✅ Password berhasil diperbarui!', true);
+      form.reset();
+    } else {
+      showSecurityMsg(`❌ ${result.error}`, false);
+    }
+    setPasswordSaving(false);
   };
 
   if (status === 'loading' || loading) {
@@ -468,28 +517,18 @@ export default function ProfilePage() {
 
             {/* ===== KEAMANAN ===== */}
             {activeTab === 'security' && (
-              <div className="neo-card p-6 sm:p-8">
-                <h2 className="text-xl font-extrabold mb-6 flex items-center gap-2">
-                  <span className="bg-[#FF4081] text-white px-2 py-0.5 border-[2px] border-[var(--neo-black)] rounded-lg text-sm">🔒</span>
-                  Keamanan Akun
-                </h2>
-
-                <div className="space-y-4">
-                  <div className="p-5 border-[3px] border-[var(--neo-black)] rounded-xl bg-white shadow-[var(--neo-shadow-sm)] flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-extrabold mb-0.5">📧 Email</p>
-                      <p className="text-sm opacity-60 font-medium">{user?.email}</p>
-                    </div>
-                    <span className="neo-sticker bg-[#00C853] text-[#1A1A2E] text-xs rotate-0">✅ Aktif</span>
+              <div className="space-y-5">
+                {securityMsg.text && (
+                  <div className={`p-3 rounded-xl font-bold text-sm border-[2px] border-[var(--neo-black)] ${securityMsg.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
+                    {securityMsg.text}
                   </div>
+                )}
 
-                  <div className="p-5 border-[3px] border-[var(--neo-black)] rounded-xl bg-white shadow-[var(--neo-shadow-sm)] flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-extrabold mb-0.5">🔑 Password</p>
-                      <p className="text-sm opacity-60 font-medium">••••••••</p>
-                    </div>
-                    <span className="neo-sticker bg-[#00C853] text-[#1A1A2E] text-xs rotate-0">✅ Aktif</span>
-                  </div>
+                <div className="neo-card p-6 sm:p-8">
+                  <h2 className="text-xl font-extrabold mb-6 flex items-center gap-2">
+                    <span className="bg-[#FF4081] text-white px-2 py-0.5 border-[2px] border-[var(--neo-black)] rounded-lg text-sm">🔒</span>
+                    Keamanan Akun
+                  </h2>
 
                   <div className="p-5 border-[3px] border-[var(--neo-black)] rounded-xl bg-white shadow-[var(--neo-shadow-sm)] flex items-center justify-between gap-4">
                     <div>
@@ -500,12 +539,91 @@ export default function ProfilePage() {
                       {roleLabel[user?.role] || user?.role}
                     </span>
                   </div>
+                </div>
 
-                  <div className="mt-4 p-4 bg-[var(--neo-accent)]/20 border-[2px] border-dashed border-[var(--neo-black)]/30 rounded-xl">
-                    <p className="text-sm font-bold opacity-70">
-                      🔐 Untuk mengganti password atau email, silakan hubungi admin MallPedia melalui halaman kontak.
-                    </p>
-                  </div>
+                <div className="neo-card p-6 sm:p-8">
+                  <h3 className="text-lg font-extrabold mb-4 flex items-center gap-2">
+                    <span>📧</span> Ubah Email
+                  </h3>
+                  <p className="text-sm font-medium opacity-60 mb-4">
+                    Email saat ini: <strong className="text-[var(--neo-black)]">{profile?.email}</strong>
+                  </p>
+                  <form onSubmit={handleChangeEmail} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-extrabold mb-1.5">Email Baru</label>
+                      <input
+                        name="email"
+                        type="email"
+                        required
+                        placeholder="email.bar@example.com"
+                        className="neo-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-extrabold mb-1.5">Password Saat Ini</label>
+                      <input
+                        name="currentPassword"
+                        type="password"
+                        required
+                        placeholder="Konfirmasi dengan password kamu"
+                        className="neo-input"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={emailSaving}
+                      className="neo-btn neo-btn-outline px-6 py-2.5 font-extrabold disabled:opacity-50"
+                    >
+                      {emailSaving ? '⏳ Menyimpan...' : '💾 Simpan Email Baru'}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="neo-card p-6 sm:p-8">
+                  <h3 className="text-lg font-extrabold mb-4 flex items-center gap-2">
+                    <span>🔑</span> Ubah Password
+                  </h3>
+                  <form onSubmit={handleChangePassword} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-extrabold mb-1.5">Password Saat Ini</label>
+                      <input
+                        name="currentPassword"
+                        type="password"
+                        required
+                        placeholder="Password lama"
+                        className="neo-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-extrabold mb-1.5">Password Baru</label>
+                      <input
+                        name="newPassword"
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="Minimal 6 karakter"
+                        className="neo-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-extrabold mb-1.5">Konfirmasi Password Baru</label>
+                      <input
+                        name="confirmPassword"
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="Ulangi password baru"
+                        className="neo-input"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={passwordSaving}
+                      className="neo-btn neo-btn-primary px-6 py-2.5 font-extrabold disabled:opacity-50"
+                    >
+                      {passwordSaving ? '⏳ Menyimpan...' : '🔐 Simpan Password Baru'}
+                    </button>
+                  </form>
                 </div>
               </div>
             )}

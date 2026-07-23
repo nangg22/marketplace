@@ -6,6 +6,7 @@ import { products, users, categories } from '@/lib/schema';
 import { ilike, eq, asc, desc, and, gte, lte } from 'drizzle-orm';
 import Link from 'next/link';
 import PriceFilter from '@/components/PriceFilter';
+import MobileFilterDrawer from '@/components/MobileFilterDrawer';
 
 // Ikon default per slug kategori
 const CATEGORY_ICONS: Record<string, string> = {
@@ -46,26 +47,27 @@ export default async function AllProductsPage({
       price: products.price,
       imageUrl: products.imageUrl,
       category: products.category,
-      createdAt: products.createdAt,
       sellerName: users.name,
     })
     .from(products)
     .leftJoin(users, eq(products.sellerId, users.id));
 
-  let query = baseSelect.where(eq(products.isSuspended, false)).$dynamic();
+  const conditions = [eq(products.isSuspended, false)];
 
   if (activeCategory) {
-    query = query.where(and(eq(products.isSuspended, false), eq(products.category, activeCategory)));
+    conditions.push(eq(products.category, activeCategory));
   }
   if (q) {
-    query = query.where(and(eq(products.isSuspended, false), ilike(products.name, `%${q}%`)));
+    conditions.push(ilike(products.name, `%${q}%`));
   }
   if (minPrice) {
-    query = query.where(and(eq(products.isSuspended, false), gte(products.price, Number(minPrice))));
+    conditions.push(gte(products.price, Number(minPrice)));
   }
   if (maxPrice) {
-    query = query.where(and(eq(products.isSuspended, false), lte(products.price, Number(maxPrice))));
+    conditions.push(lte(products.price, Number(maxPrice)));
   }
+
+  let query = baseSelect.where(and(...conditions)).$dynamic();
 
   if (sort === 'cheapest') {
     query = query.orderBy(asc(products.price));
@@ -86,37 +88,38 @@ export default async function AllProductsPage({
 
       <main className="flex-grow">
         {/* Banner */}
-        <section className="bg-[var(--neo-pink)] border-b-[4px] border-[var(--neo-black)] py-10 relative overflow-hidden">
+        <section className="bg-[var(--neo-pink)] border-b-[4px] border-[var(--neo-black)] py-6 sm:py-10 relative overflow-hidden">
           <div className="absolute inset-0 neo-dots-pattern" />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Search bar mobile */}
-            <form action="/products" method="GET" className="flex gap-2 max-w-xl mx-auto mb-6">
+          <div className="relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            {/* Search bar */}
+            <form action="/products" method="GET" className="flex gap-2 max-w-xl mx-auto mb-4 sm:mb-6">
               {activeCategory && (
                 <input type="hidden" name="category" value={activeCategory} />
               )}
+              {q && <input type="hidden" name="q" value={q} />}
               <input
                 type="text"
                 name="q"
                 defaultValue={q}
                 placeholder="🔍 Cari produk..."
-                className="neo-input flex-1 bg-white"
+                className="neo-input flex-1 bg-white min-w-0"
               />
-              <button type="submit" className="neo-btn neo-btn-primary px-5 font-extrabold">
+              <button type="submit" className="neo-btn neo-btn-primary px-3 sm:px-5 font-extrabold shrink-0">
                 Cari
               </button>
             </form>
 
             <div className="text-center animate-slide-up">
-              <h1 className="text-3xl md:text-4xl font-extrabold text-[var(--neo-black)] mb-2">
+              <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-[var(--neo-black)] mb-2 leading-tight">
                 {q ? (
-                  <>Hasil untuk: <span className="text-white bg-[var(--neo-primary)] px-2 border-[2px] border-[var(--neo-black)] rounded">&quot;{q}&quot;</span></>
+                  <>Hasil untuk: <span className="text-white bg-[var(--neo-primary)] px-1.5 sm:px-2 border-[2px] border-[var(--neo-black)] rounded">&quot;{q}&quot;</span></>
                 ) : activeCategory ? (
                   <>{CATEGORIES.find(c => c.value === activeCategory)?.icon} {activeCategoryLabel}</>
                 ) : (
-                  <>Jelajahi <span className="text-white bg-[var(--neo-primary)] px-2 border-[2px] border-[var(--neo-black)] rounded inline-block rotate-[-1deg]">Semua Produk</span></>
+                  <>Jelajahi <span className="text-white bg-[var(--neo-primary)] px-1.5 sm:px-2 border-[2px] border-[var(--neo-black)] rounded inline-block rotate-[-1deg]">Semua Produk</span></>
                 )}
               </h1>
-              <p className="text-sm font-bold text-[var(--neo-black)] opacity-70">
+              <p className="text-xs sm:text-sm font-bold text-[var(--neo-black)] opacity-70">
                 {allProducts.length} produk ditemukan
               </p>
             </div>
@@ -124,8 +127,8 @@ export default async function AllProductsPage({
         </section>
 
         {/* Main layout: sidebar + grid */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex gap-6 items-start">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="flex gap-4 lg:gap-6 items-start">
 
             {/* ===== SIDEBAR KATEGORI ===== */}
             <aside className="hidden lg:block w-52 flex-shrink-0">
@@ -156,40 +159,29 @@ export default async function AllProductsPage({
                   })}
                 </nav>
               </div>
-              
+
               <div className="mt-6 sticky top-[380px]">
-                <PriceFilter />
+                <PriceFilter className="w-full" />
               </div>
             </aside>
 
             {/* ===== PRODUK AREA ===== */}
             <div className="flex-1 min-w-0">
-              {/* Mobile kategori chips */}
-              <div className="lg:hidden flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-                {CATEGORIES.map((cat) => (
-                  <Link
-                    key={cat.value}
-                    href={`/products${cat.value ? `?category=${encodeURIComponent(cat.value)}` : ''}`}
-                    className={`flex-shrink-0 text-xs font-bold px-3 py-1.5 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)] transition-colors
-                      ${activeCategory === cat.value
-                        ? 'bg-[var(--neo-accent)] text-[var(--neo-black)]'
-                        : 'bg-white text-[var(--neo-black)] hover:bg-[var(--neo-gray)]'
-                      }`}
-                  >
-                    {cat.icon} {cat.label}
-                  </Link>
-                ))}
-              </div>
+              <MobileFilterDrawer
+                categories={CATEGORIES}
+                activeCategory={activeCategory}
+                sort={sort}
+              />
 
               {/* Toolbar sort */}
-              <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
-                <p className="text-sm font-bold opacity-60">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2 sm:gap-3">
+                <p className="text-xs sm:text-sm font-bold opacity-60">
                   Menampilkan <span className="text-[var(--neo-primary)]">{allProducts.length}</span> produk
                   {activeCategoryLabel !== 'Semua' && (
                     <> dalam <span className="text-[var(--neo-secondary)]">{activeCategoryLabel}</span></>
                   )}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                   {[
                     { value: 'newest', label: '🕐 Terbaru' },
                     { value: 'cheapest', label: '💰 Termurah' },
@@ -197,8 +189,8 @@ export default async function AllProductsPage({
                   ].map((s) => (
                     <Link
                       key={s.value}
-                      href={`/products?${activeCategory ? `category=${encodeURIComponent(activeCategory)}&` : ''}sort=${s.value}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
-                      className={`text-xs font-bold px-3 py-1.5 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)] transition-colors
+                      href={`/products?${activeCategory ? `category=${encodeURIComponent(activeCategory)}&` : ''}sort=${s.value}${q ? `&q=${encodeURIComponent(q)}` : ''}${minPrice ? `&minPrice=${minPrice}` : ''}${maxPrice ? `&maxPrice=${maxPrice}` : ''}`}
+                      className={`text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)] transition-colors
                         ${sort === s.value
                           ? 'bg-[var(--neo-primary)] text-white'
                           : 'bg-white hover:bg-[var(--neo-gray)]'
@@ -210,24 +202,24 @@ export default async function AllProductsPage({
                 </div>
               </div>
 
-              <div className="neo-zigzag mb-6 opacity-20" />
+              <div className="neo-zigzag mb-4 sm:mb-6 opacity-20" />
 
               {/* Grid produk */}
               {allProducts.length === 0 ? (
-                <div className="neo-card text-center py-16 px-6 animate-slide-up">
-                  <div className="text-6xl mb-4 animate-float">🤷‍♂️</div>
-                  <h3 className="text-xl font-extrabold text-[var(--neo-black)] mb-2">
+                <div className="neo-card text-center py-10 sm:py-16 px-4 sm:px-6 animate-slide-up">
+                  <div className="text-5xl sm:text-6xl mb-4 animate-float">🤷‍♂️</div>
+                  <h3 className="text-lg sm:text-xl font-extrabold text-[var(--neo-black)] mb-2">
                     Produk Tidak Ditemukan
                   </h3>
-                  <p className="text-sm font-medium text-[var(--neo-black)] opacity-50 mb-6">
+                  <p className="text-xs sm:text-sm font-medium text-[var(--neo-black)] opacity-50 mb-6">
                     Coba kategori atau kata kunci lain.
                   </p>
-                  <Link href="/products" className="neo-btn neo-btn-primary">
+                  <Link href="/products" className="neo-btn neo-btn-primary text-xs sm:text-sm">
                     Lihat Semua Produk
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
                   {allProducts.map((product, i) => (
                     <ProductsCard key={product.id} product={product} index={i} />
                   ))}

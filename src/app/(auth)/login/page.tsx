@@ -30,9 +30,6 @@ function LoginContent() {
       password,
     });
 
-    console.log('Res:', res);
-    console.log('Error:', res?.error);
-
     if (res?.error) { 
       setError('Email atau password salah! Coba lagi ya 😅');
       setLoading(false);

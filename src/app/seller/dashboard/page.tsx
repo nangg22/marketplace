@@ -9,6 +9,9 @@ import { eq, inArray } from 'drizzle-orm';
 import { sellerOnboarding } from '@/lib/schema';
 import SellerOnboardingChecklist from '@/components/SellerOnboardingChecklist';
 import SellerAnalyticsDashboard from '@/components/SellerAnalyticsDashboard';
+import { StatusBadge } from '@/app/seller/orders/OrderActionButtons';
+import NotificationBell from '@/components/NotificationBell';
+import { getUnreadCount } from '@/lib/notifications';
 
 export default async function SellerDashboardPage() {
   const auth = await requireRole(['seller']);
@@ -22,6 +25,9 @@ export default async function SellerDashboardPage() {
     .select()
     .from(sellerOnboarding)
     .where(eq(sellerOnboarding.userId, sellerId));
+
+  // Ambil jumlah notifikasi yang belum dibaca
+  const unreadCount = await getUnreadCount(sellerId);
 
   // Hanya ambil produk milik seller ini
   const allProducts = await db.select().from(products).where(eq(products.sellerId, sellerId));
@@ -46,13 +52,22 @@ export default async function SellerDashboardPage() {
     }
   }
 
-  const totalRevenue = sellerOrders
-    .filter((o) => o.status === 'paid')
-    .reduce((sum, o) => sum + o.totalAmount, 0);
-  const paidOrders = sellerOrders.filter((o) => o.status === 'paid');
-  const pendingOrders = sellerOrders.filter(
-    (o) => o.status !== 'paid' && o.status !== 'cancelled'
+  const isRevenueGenerating = (status: string) => ['paid', 'confirmed_cod', 'processing', 'shipped', 'delivered', 'completed'].includes(status);
+  
+  // Pesanan yang butuh aksi seller:
+  // - pending_cod: perlu di-approve
+  // - paid: perlu di-approve
+  // - delivered + COD: perlu konfirmasi pembayaran diterima
+  const pendingActionOrders = sellerOrders.filter(
+    (o) => ['pending_cod', 'paid'].includes(o.status) || 
+           (o.paymentMethod === 'cod' && o.status === 'delivered')
   );
+
+  const totalRevenue = sellerOrders
+    .filter((o) => isRevenueGenerating(o.status))
+    .reduce((sum, o) => sum + o.totalAmount, 0);
+    
+  const paidOrders = sellerOrders.filter((o) => isRevenueGenerating(o.status));
 
   const formatRupiah = (price: number) =>
     new Intl.NumberFormat('id-ID', {
@@ -112,11 +127,14 @@ export default async function SellerDashboardPage() {
             </h1>
             <p className="font-semibold opacity-60 mt-2 text-lg">Selamat datang kembali! Cek performa tokomu di sini.</p>
           </div>
-          <Link href="/seller/products/create">
-            <button className="neo-btn neo-btn-primary hover-wiggle px-6">
-              ➕ Tambah Produk
-            </button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <NotificationBell initialCount={unreadCount} />
+            <Link href="/seller/products/create">
+              <button className="neo-btn neo-btn-primary hover-wiggle px-6">
+                ➕ Tambah Produk
+              </button>
+            </Link>
+          </div>
         </div>
 
         {onboarding && <SellerOnboardingChecklist status={onboarding} />}
@@ -135,11 +153,11 @@ export default async function SellerDashboardPage() {
         </div>
 
         {/* Notif pesanan menunggu approval */}
-        {pendingOrders.length > 0 && (
+        {pendingActionOrders.length > 0 && (
           <div className="neo-card p-5 mb-8 bg-[var(--neo-accent)]/30 border-[3px] border-[var(--neo-accent)] animate-slide-up stagger-2 flex items-center gap-4">
             <div className="text-3xl">⚠️</div>
             <div>
-              <p className="font-extrabold text-lg">Ada {pendingOrders.length} pesanan menunggu konfirmasi Anda!</p>
+              <p className="font-extrabold text-lg">Ada {pendingActionOrders.length} pesanan menunggu konfirmasi Anda!</p>
               <p className="text-sm font-semibold opacity-70">Segera approve agar pembeli bisa melanjutkan prosesnya.</p>
             </div>
             <Link href="/seller/orders" className="ml-auto shrink-0">
@@ -231,15 +249,7 @@ export default async function SellerDashboardPage() {
                       </td>
                       <td className="p-4 font-extrabold">{formatRupiah(order.totalAmount)}</td>
                       <td className="p-4">
-                        <span className={`neo-sticker text-xs px-2 py-0.5 rotate-0 ${
-                          order.status === 'paid' ? 'bg-[var(--neo-green)] text-[var(--neo-black)]' :
-                          order.status === 'cancelled' ? 'bg-red-400 text-white' :
-                          'bg-[var(--neo-accent)] text-[var(--neo-black)]'
-                        }`}>
-                          {order.status === 'paid' ? '✅ Lunas' :
-                           order.status === 'cancelled' ? '❌ Dibatalkan' :
-                           '⏳ Menunggu'}
-                        </span>
+                        <StatusBadge status={order.status} />
                       </td>
                     </tr>
                   ))}

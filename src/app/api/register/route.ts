@@ -13,11 +13,14 @@ export async function POST(req: NextRequest) {
     if (!name?.trim() || name.trim().length < 2) {
       return NextResponse.json({ error: 'Nama minimal 2 karakter.' }, { status: 400 });
     }
-    if (!email?.trim() || !email.includes('@')) {
+    if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return NextResponse.json({ error: 'Format email tidak valid.' }, { status: 400 });
     }
     if (!password || password.length < 6) {
       return NextResponse.json({ error: 'Password minimal 6 karakter.' }, { status: 400 });
+    }
+    if (password.length > 128) {
+      return NextResponse.json({ error: 'Password maksimal 128 karakter.' }, { status: 400 });
     }
     if (!['customer', 'seller'].includes(role)) {
       return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 });
@@ -54,7 +57,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {
-    console.error('Register error:', err);
     return NextResponse.json(
       { error: 'Terjadi kesalahan server. Coba lagi.' },
       { status: 500 }

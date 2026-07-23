@@ -81,7 +81,6 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
-    console.error(err);
     return NextResponse.json({ error: "Gagal menyimpan review" }, { status: 500 });
   }
 }

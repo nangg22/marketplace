@@ -9,7 +9,6 @@ export const ourFileRouter = {
       return {};
     })
     .onUploadComplete(async ({ file }) => {
-      console.log("Upload sukses! URL:", file.url);
       return { url: file.url };
     }),
 } satisfies FileRouter;

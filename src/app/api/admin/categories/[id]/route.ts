@@ -24,9 +24,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json();
 
+  // Whitelist — hanya izinkan field yang diizinkan untuk diupdate
+  const allowedFields: Record<string, any> = {};
+  if (body.name !== undefined) allowedFields.name = body.name;
+  if (body.slug !== undefined) allowedFields.slug = body.slug;
+  if (body.description !== undefined) allowedFields.description = body.description;
+  if (body.sortOrder !== undefined) allowedFields.sortOrder = body.sortOrder;
+  if (body.imageUrl !== undefined) allowedFields.imageUrl = body.imageUrl;
+  if (body.isActive !== undefined) allowedFields.isActive = body.isActive;
+  if (body.iconUrl !== undefined) allowedFields.iconUrl = body.iconUrl;
+
   const [updated] = await db
     .update(categories)
-    .set(body)
+    .set(allowedFields)
     .where(eq(categories.id, id))
     .returning();
 

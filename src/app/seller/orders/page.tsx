@@ -7,6 +7,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { OrderActionButtons, StatusBadge } from './OrderActionButtons';
+import NotificationBell from '@/components/NotificationBell';
+import { getUnreadCount } from '@/lib/notifications';
 
 export default async function SellerOrdersPage() {
   const auth = await requireRole(['seller']);
@@ -24,6 +26,9 @@ export default async function SellerOrdersPage() {
 
   const myProductIds = myProducts.map((p) => p.id);
   const productMap = new Map(myProducts.map((p) => [p.id, p]));
+
+  // Ambil jumlah notifikasi yang belum dibaca
+  const unreadCount = await getUnreadCount(sellerId);
 
   // Cari orderItem yang berisi produk si seller
   let sellerOrders: (typeof orders.$inferSelect & {
@@ -81,8 +86,12 @@ export default async function SellerOrdersPage() {
       minute: '2-digit',
     });
 
+  const isPaidStatus = (status: string) => status === 'paid' || status === 'confirmed_cod' || status === 'completed';
+
+  // Pesanan yang butuh aksi seller
   const pendingCount = sellerOrders.filter(
-    (o) => o.status !== 'paid' && o.status !== 'cancelled'
+    (o) => ['pending_cod', 'paid'].includes(o.status) || 
+           (o.paymentMethod === 'cod' && o.status === 'delivered')
   ).length;
 
   return (
@@ -109,6 +118,7 @@ export default async function SellerOrdersPage() {
             </p>
           </div>
           <div className="flex gap-3 items-center">
+            <NotificationBell initialCount={unreadCount} />
             {pendingCount > 0 && (
               <span className="neo-badge bg-[var(--neo-accent)] text-sm font-extrabold px-4 py-2">
                 ⚠️ {pendingCount} perlu diapprove
@@ -136,7 +146,9 @@ export default async function SellerOrdersPage() {
                 (sum, item) => sum + item.price * item.quantity,
                 0
               );
-              const isPending = order.status !== 'paid' && order.status !== 'cancelled';
+              // Pesanan yang butuh aksi seller
+              const isPending = ['pending_cod', 'paid'].includes(order.status) || 
+                                (order.paymentMethod === 'cod' && order.status === 'delivered');
 
               return (
                 <div
@@ -208,7 +220,7 @@ export default async function SellerOrdersPage() {
                   )}
 
                   {/* Tombol Approve / Batalkan */}
-                  <OrderActionButtons orderId={order.id} currentStatus={order.status} />
+                  <OrderActionButtons orderId={order.id} currentStatus={order.status} paymentMethod={order.paymentMethod} />
                 </div>
               );
             })}

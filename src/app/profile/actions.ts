@@ -3,8 +3,9 @@
 import { db } from '@/lib/db';
 import { users, sellerOnboarding } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
-import { eq } from 'drizzle-orm';
+import { eq, and, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import bcrypt from 'bcryptjs';
 
 export async function getMyProfile() {
   const auth = await requireRole(['customer', 'seller', 'admin']) as any;
@@ -78,6 +79,101 @@ export async function updateMyProfile(data: {
 
   revalidatePath('/profile');
   revalidatePath('/seller/dashboard');
+
+  return { success: true, name: data.name.trim() };
+}
+
+export async function updateMyEmail(data: {
+  email: string;
+  currentPassword: string;
+}) {
+  const auth = await requireRole(['customer', 'seller', 'admin']) as any;
+  if (!auth.ok) return { success: false, error: auth.message };
+
+  const userId = auth.session?.user?.id;
+  const email = data.email?.trim().toLowerCase();
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: 'Format email tidak valid.' };
+  }
+
+  if (!data.currentPassword) {
+    return { success: false, error: 'Password saat ini wajib diisi.' };
+  }
+
+  const [user] = await db
+    .select({ id: users.id, email: users.email, password: users.password })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) return { success: false, error: 'User tidak ditemukan.' };
+
+  const valid = await bcrypt.compare(data.currentPassword, user.password);
+  if (!valid) return { success: false, error: 'Password saat ini salah.' };
+
+  if (email === user.email.toLowerCase()) {
+    return { success: false, error: 'Email baru harus berbeda dari email saat ini.' };
+  }
+
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.email, email), ne(users.id, userId)))
+    .limit(1);
+
+  if (existing) {
+    return { success: false, error: 'Email sudah digunakan akun lain.' };
+  }
+
+  await db.update(users).set({ email }).where(eq(users.id, userId));
+
+  revalidatePath('/profile');
+
+  return { success: true, email };
+}
+
+export async function changeMyPassword(data: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) {
+  const auth = await requireRole(['customer', 'seller', 'admin']) as any;
+  if (!auth.ok) return { success: false, error: auth.message };
+
+  const userId = auth.session?.user?.id;
+
+  if (!data.currentPassword || !data.newPassword || !data.confirmPassword) {
+    return { success: false, error: 'Semua field password wajib diisi.' };
+  }
+
+  if (data.newPassword.length < 6) {
+    return { success: false, error: 'Password baru minimal 6 karakter.' };
+  }
+
+  if (data.newPassword !== data.confirmPassword) {
+    return { success: false, error: 'Konfirmasi password tidak cocok.' };
+  }
+
+  if (data.currentPassword === data.newPassword) {
+    return { success: false, error: 'Password baru harus berbeda dari password lama.' };
+  }
+
+  const [user] = await db
+    .select({ password: users.password })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) return { success: false, error: 'User tidak ditemukan.' };
+
+  const valid = await bcrypt.compare(data.currentPassword, user.password);
+  if (!valid) return { success: false, error: 'Password saat ini salah.' };
+
+  const hashed = await bcrypt.hash(data.newPassword, 10);
+  await db.update(users).set({ password: hashed }).where(eq(users.id, userId));
+
+  revalidatePath('/profile');
 
   return { success: true };
 }

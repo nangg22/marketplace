@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { orders, orderItems, products } from "@/lib/schema";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
+
+// Status yang dianggap sebagai "sudah bayar" (pendapatan tercatat)
+const PAID_STATUSES = ["paid", "confirmed_cod", "processing", "shipped", "delivered", "completed"];
 
 export async function getSellerSummary(sellerId: string, days = 30) {
   const since = new Date();
@@ -18,7 +21,7 @@ export async function getSellerSummary(sellerId: string, days = 30) {
     .where(
       and(
         eq(products.sellerId, sellerId),
-        eq(orders.status, "paid"), // status "paid" sesuai schema proyek
+        inArray(orders.status, PAID_STATUSES),
         gte(orders.createdAt, since)
       )
     );
@@ -33,7 +36,7 @@ export async function getSellerSummary(sellerId: string, days = 30) {
     .from(orderItems)
     .innerJoin(products, eq(products.id, orderItems.productId))
     .innerJoin(orders, eq(orders.id, orderItems.orderId))
-    .where(and(eq(products.sellerId, sellerId), eq(orders.status, "paid")))
+    .where(and(eq(products.sellerId, sellerId), inArray(orders.status, PAID_STATUSES)))
     .groupBy(products.id, products.name)
     .orderBy(sql`sum(${orderItems.quantity}) desc`)
     .limit(5);
@@ -50,7 +53,7 @@ export async function getSellerSummary(sellerId: string, days = 30) {
     .where(
       and(
         eq(products.sellerId, sellerId),
-        eq(orders.status, "paid"),
+        inArray(orders.status, PAID_STATUSES),
         gte(orders.createdAt, since)
       )
     )

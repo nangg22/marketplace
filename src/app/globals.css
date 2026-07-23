@@ -53,7 +53,7 @@ body {
   background: var(--neo-bg);
   color: var(--neo-black);
   font-family: 'Space Grotesk', Arial, Helvetica, sans-serif;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ============================================
@@ -67,7 +67,7 @@ body {
 
 html, body {
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Semua gambar responsif */
@@ -258,6 +258,12 @@ table {
   100% { transform: translateX(-50%); }
 }
 
+/* Slide Left — untuk mobile drawer */
+@keyframes slideLeft {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(0); }
+}
+
 /* Spin Slow — dekorasi */
 @keyframes spinSlow {
   0% { transform: rotate(0deg); }
@@ -300,6 +306,10 @@ table {
 
 .animate-spin-slow {
   animation: spinSlow 8s linear infinite;
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.3s ease-out both;
 }
 
 /* Hover Wiggle Helper */
@@ -386,4 +396,49 @@ table {
 ::selection {
   background: var(--neo-accent);
   color: var(--neo-black);
+}
+
+/* ============================================
+   📱 MOBILE-SPECIFIC IMPROVEMENTS
+   ============================================ */
+
+/* Better touch targets on mobile */
+@media (max-width: 640px) {
+  .neo-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .neo-input {
+    min-height: 44px;
+    font-size: 16px; /* Prevent iOS zoom on focus */
+  }
+
+  /* Reduce shadow complexity on mobile for performance */
+  .neo-card {
+    box-shadow: 2px 2px 0px var(--neo-black);
+  }
+  .neo-card:hover {
+    box-shadow: 4px 4px 0px var(--neo-black);
+  }
+
+  /* Smoother scrolling */
+  .neo-card {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent text overflow on small screens */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .neo-btn {
+    padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+  }
 }

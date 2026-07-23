@@ -57,12 +57,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // 4. Jika "approved", ubah status order menjadi "refunded"
     if (status === "approved") {
       await updateOrderStatus(refund.orderId, "refunded", `Refund disetujui penjual. Note: ${sellerResponse}`);
-      // Di sini bisa ditambahkan integrasi ke Midtrans untuk refund dana jika menggunakan payment gateway
+      // Refund diproses langsung (mode simulasi, tanpa payment gateway)
     }
 
     return NextResponse.json(updated);
   } catch (error: any) {
-    console.error("Respond Refund Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
