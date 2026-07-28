@@ -10,7 +10,7 @@ import { authOptions } from '@/lib/auth';
 
 export default async function HomePage() {
   // Join produk dengan nama seller
-  const realProducts = await db
+  const rawProducts = await db
     .select({
       id: products.id,
       name: products.name,
@@ -21,6 +21,14 @@ export default async function HomePage() {
     .from(products)
     .leftJoin(users, eq(products.sellerId, users.id))
     .where(eq(products.isSuspended, false));
+
+  const realProducts = rawProducts.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    imageUrl: p.imageUrl,
+    sellerName: p.sellerName,
+  }));
 
   // Cek session untuk tombol "Mulai Jualan"
   const session = await getServerSession(authOptions);

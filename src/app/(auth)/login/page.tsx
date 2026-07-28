@@ -65,15 +65,15 @@ function LoginContent() {
         </div>
 
         {/* Tab Pembeli / Penjual */}
-        <div className="flex gap-2 mb-4 animate-slide-up stagger-1">
+        <div className="flex gap-2 mb-4 animate-slide-up stagger-1 relative z-10">
           <button
             type="button"
             id="tab-customer"
             onClick={() => { setActiveTab('customer'); setError(''); }}
             className={`neo-btn flex-1 text-sm py-3 font-extrabold transition-all duration-200 ${
               activeTab === 'customer'
-                ? 'neo-btn-primary scale-[1.02]'
-                : 'neo-btn-outline opacity-70'
+                ? 'neo-btn-primary shadow-[var(--neo-shadow)]'
+                : 'neo-btn-outline opacity-70 hover:opacity-100'
             }`}
           >
             🛒 Pembeli
@@ -84,8 +84,8 @@ function LoginContent() {
             onClick={() => { setActiveTab('seller'); setError(''); }}
             className={`neo-btn flex-1 text-sm py-3 font-extrabold transition-all duration-200 ${
               activeTab === 'seller'
-                ? 'neo-btn-secondary scale-[1.02]'
-                : 'neo-btn-outline opacity-70'
+                ? 'neo-btn-secondary shadow-[var(--neo-shadow)]'
+                : 'neo-btn-outline opacity-70 hover:opacity-100'
             }`}
           >
             🏪 Penjual
@@ -124,14 +124,14 @@ function LoginContent() {
 
           {/* Notif daftar sukses */}
           {justRegistered && (
-            <div className="mb-4 p-3 bg-green-50 border-[2px] border-green-400 rounded-xl font-bold text-sm text-green-700 flex items-center gap-2">
+            <div className="mb-4 p-3 border-[2px] border-[var(--neo-green)] rounded-xl font-bold text-sm flex items-center gap-2" style={{ backgroundColor: '#E8F5E9', color: '#1B5E20' }}>
               ✅ Akun berhasil dibuat! Silakan masuk.
             </div>
           )}
 
           {/* Error Notification */}
           {error && (
-            <div className="neo-card bg-[var(--neo-pink)] text-white p-3 text-sm text-center mb-4 font-bold" style={{ boxShadow: '3px 3px 0px var(--neo-black)' }}>
+            <div className="p-3 text-sm text-center mb-4 font-bold border-[3px] border-[var(--neo-black)] rounded-xl" style={{ backgroundColor: '#FF4081', color: '#FFFFFF', boxShadow: '3px 3px 0px #1A1A2E' }}>
               ❌ {error}
             </div>
           )}

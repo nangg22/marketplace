@@ -6,8 +6,8 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt", maxAge: 3600 },
-  trustHost: true,
   providers: [
     CredentialsProvider({
       name: "Credentials",

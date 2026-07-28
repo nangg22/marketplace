@@ -1,6 +1,5 @@
 import { db } from '@/lib/db';
 import { products, users, orders } from '@/lib/schema';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
@@ -32,9 +31,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
-      <Navbar />
-
-      <main className="flex-grow max-w-6xl mx-auto px-4 py-10 w-full relative">
+      <main className="flex-grow max-w-6xl mx-auto px-4 py-10 w-full relative"> 
         <div className="absolute top-6 right-10 text-5xl animate-float opacity-20 hidden lg:block">⚙️</div>
 
         {/* Header */}

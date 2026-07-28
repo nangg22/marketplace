@@ -1,6 +1,5 @@
 import { db } from '@/lib/db';
 import { products, users } from '@/lib/schema';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { eq } from 'drizzle-orm';
@@ -39,8 +38,6 @@ export default async function AdminProductsPage() {
 
   return (
     <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
-      <Navbar />
-
       <main className="flex-grow max-w-7xl mx-auto px-4 py-10 w-full">
         <div className="mb-6 animate-slide-up">
           <Link href="/admin/dashboard" className="neo-link text-sm font-bold opacity-60 hover:opacity-100">

@@ -103,14 +103,14 @@ function RegisterForm() {
 
             <div>
               <label className="block text-sm font-bold text-[var(--neo-black)] mb-2">🎭 Daftar Sebagai</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 relative z-10">
                 <button type="button" onClick={() => setRole('customer')}
-                  className={`neo-card p-3 text-center text-sm font-bold transition-all duration-200 hover:translate-y-[-2px] ${role === 'customer' ? 'bg-[#FF6B35] text-white shadow-[var(--neo-shadow)]' : ''}`}>
+                  className={`p-3 text-center text-sm font-bold transition-all duration-200 border-[3px] border-[var(--neo-black)] rounded-xl ${role === 'customer' ? 'bg-[#FF6B35] text-white shadow-[var(--neo-shadow)]' : 'bg-white hover:bg-gray-50'}`}>
                   <div className="text-2xl mb-1">🛒</div>
                   <div>Pembeli</div>
                 </button>
                 <button type="button" onClick={() => setRole('seller')}
-                  className={`neo-card p-3 text-center text-sm font-bold transition-all duration-200 hover:translate-y-[-2px] ${role === 'seller' ? 'bg-[#7B4AE2] text-white shadow-[var(--neo-shadow)]' : ''}`}>
+                  className={`p-3 text-center text-sm font-bold transition-all duration-200 border-[3px] border-[var(--neo-black)] rounded-xl ${role === 'seller' ? 'bg-[#7B4AE2] text-white shadow-[var(--neo-shadow)]' : 'bg-white hover:bg-gray-50'}`}>
                   <div className="text-2xl mb-1">🏪</div>
                   <div>Penjual</div>
                 </button>
