@@ -34,13 +34,17 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     const category = (formData.get('category') as string) || 'Lainnya';
     // ✅ Checkbox: ada di formData = true, tidak ada = false
     const isAvailable = formData.get('isAvailable') === 'on';
+    
+    // Nego & Kondisi
+    const isNegotiable = formData.get('isNegotiable') === 'on';
+    const condition = (formData.get('condition') as 'baru' | 'like_new' | 'minus_ringan' | 'minus_berat') || 'baru';
 
     const actionAuth = await requireRole(['seller']);
     if (!actionAuth.ok) return;
     const currentSellerId = (actionAuth.session?.user as any).id;
 
     await db.update(products)
-      .set({ name, price, stock, description, imageUrl, category, isAvailable })
+      .set({ name, price, stock, description, imageUrl, category, isAvailable, isNegotiable, condition })
       .where(and(eq(products.id, productId), eq(products.sellerId, currentSellerId)));
 
     redirect('/seller/products');
@@ -160,6 +164,50 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Kondisi Barang */}
+            <div className="neo-card p-4">
+              <label className="block text-sm font-extrabold mb-3">🔍 Kondisi Barang</label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'baru', label: '✨ Baru', desc: 'Belum pernah dipakai' },
+                  { value: 'like_new', label: '💎 Like New', desc: 'Mulus 99%' },
+                  { value: 'minus_ringan', label: '⚠️ Minus Ringan', desc: 'Ada cacat kecil' },
+                  { value: 'minus_berat', label: '💀 Minus Berat', desc: 'Perlu perbaikan' },
+                ].map((c) => (
+                  <label key={c.value} className="flex flex-col gap-1 p-3 rounded-xl border-[2px] border-[var(--neo-black)] bg-white cursor-pointer hover:bg-[var(--neo-gray)] transition-colors">
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="radio" 
+                        name="condition" 
+                        value={c.value} 
+                        defaultChecked={product.condition === c.value || (!product.condition && c.value === 'baru')}
+                        className="w-4 h-4 text-[var(--neo-primary)] focus:ring-[var(--neo-black)] border-[2px] border-[var(--neo-black)]" 
+                      />
+                      <span className="font-extrabold text-sm">{c.label}</span>
+                    </div>
+                    <span className="text-[10px] font-medium opacity-60 ml-6">{c.desc}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Nego Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-xl border-[3px] border-[var(--neo-black)] bg-[var(--neo-pink)] text-white">
+              <div>
+                <p className="font-extrabold text-sm">🤝 Harga Bisa Nego?</p>
+                <p className="text-xs opacity-80 font-medium mt-0.5">Aktifkan agar pembeli bisa tawar harga</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isNegotiable"
+                  defaultChecked={product.isNegotiable ?? false}
+                  className="sr-only peer"
+                />
+                <div className="w-12 h-6 bg-[var(--neo-black)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--neo-accent)] border-[2px] border-white shadow-[2px_2px_0px_var(--neo-black)]"></div>
+              </label>
             </div>
 
             {/* ✅ Toggle Aktif/Nonaktif */}

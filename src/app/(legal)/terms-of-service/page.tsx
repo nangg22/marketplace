@@ -3,13 +3,13 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Syarat & Ketentuan | MallPedia",
+  title: "Syarat & Ketentuan | LakuLagi",
 };
 
 const SECTIONS = [
   {
     title: "1. Penggunaan Platform",
-    content: "Dengan menggunakan MallPedia, Anda setuju untuk mematuhi semua syarat dan ketentuan yang berlaku. Penggunaan platform untuk tujuan ilegal dilarang keras.",
+    content: "Dengan menggunakan LakuLagi, Anda setuju untuk mematuhi semua syarat dan ketentuan yang berlaku. Penggunaan platform untuk tujuan ilegal dilarang keras.",
   },
   {
     title: "2. Akun Pengguna",
@@ -17,11 +17,11 @@ const SECTIONS = [
   },
   {
     title: "3. Transaksi",
-    content: "Pembeli dan penjual diwajibkan untuk beriktikad baik dalam setiap transaksi. MallPedia berhak membatalkan transaksi yang terindikasi penipuan.",
+    content: "Pembeli dan penjual diwajibkan untuk beriktikad baik dalam setiap transaksi. LakuLagi berhak membatalkan transaksi yang terindikasi penipuan.",
   },
   {
     title: "4. Perubahan Syarat",
-    content: "MallPedia dapat mengubah syarat dan ketentuan ini sewaktu-waktu. Perubahan akan berlaku segera setelah dipublikasikan di platform ini.",
+    content: "LakuLagi dapat mengubah syarat dan ketentuan ini sewaktu-waktu. Perubahan akan berlaku segera setelah dipublikasikan di platform ini.",
   },
 ];
 

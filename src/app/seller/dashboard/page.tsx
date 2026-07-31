@@ -19,7 +19,7 @@ export default async function SellerDashboardPage() {
     redirect(auth.status === 401 ? '/login' : '/');
   }
 
-  const sellerId = (auth.session?.user as any).id;
+  const sellerId = auth.session.user.id;
 
   const [onboarding] = await db
     .select()
@@ -54,19 +54,46 @@ export default async function SellerDashboardPage() {
 
   const isRevenueGenerating = (status: string) => ['paid', 'confirmed_cod', 'processing', 'shipped', 'delivered', 'completed'].includes(status);
   
-  // Pesanan yang butuh aksi seller:
-  // - pending_cod: perlu di-approve
-  // - paid: perlu di-approve
-  // - delivered + COD: perlu konfirmasi pembayaran diterima
   const pendingActionOrders = sellerOrders.filter(
     (o) => ['pending_cod', 'paid'].includes(o.status) || 
            (o.paymentMethod === 'cod' && o.status === 'delivered')
   );
 
-  const totalRevenue = sellerOrders
-    .filter((o) => isRevenueGenerating(o.status))
-    .reduce((sum, o) => sum + o.totalAmount, 0);
-    
+  // Hitung revenue HANYA dari item milik seller ini (bukan total order penuh)
+  let totalRevenue = 0;
+  if (myProductIds.length > 0) {
+    const paidOrderIds = sellerOrders
+      .filter((o) => isRevenueGenerating(o.status))
+      .map((o) => o.id);
+
+    if (paidOrderIds.length > 0) {
+      const sellerItems = await db
+        .select({
+          priceAtPurchase: orderItems.priceAtPurchase,
+          quantity: orderItems.quantity,
+        })
+        .from(orderItems)
+        .where(
+          inArray(orderItems.productId, myProductIds)
+        );
+
+      // Hitung hanya item dari order yang sudah paid & ada di paidOrderIds
+      const paidOrderIdSet = new Set(paidOrderIds);
+      const relevantSellerItems = await db
+        .select({
+          priceAtPurchase: orderItems.priceAtPurchase,
+          quantity: orderItems.quantity,
+          orderId: orderItems.orderId,
+        })
+        .from(orderItems)
+        .where(inArray(orderItems.productId, myProductIds));
+
+      totalRevenue = relevantSellerItems
+        .filter((item) => paidOrderIdSet.has(item.orderId))
+        .reduce((sum, item) => sum + item.priceAtPurchase * item.quantity, 0);
+    }
+  }
+
   const paidOrders = sellerOrders.filter((o) => isRevenueGenerating(o.status));
 
   const formatRupiah = (price: number) =>

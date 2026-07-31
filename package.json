@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
@@ -15,6 +15,7 @@
     "@types/ws": "8.18.1",
     "@uploadthing/react": "^7.3.3",
     "bcryptjs": "^3.0.3",
+    "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.24.0",

@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { users, sellerOnboarding } from '@/lib/schema';
+import { users, sellerOnboarding, followers } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
 import { eq, and, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -177,3 +177,25 @@ export async function changeMyPassword(data: {
 
   return { success: true };
 }
+
+export async function toggleFollow(targetUserId: string) {
+  const auth = (await requireRole(['customer', 'seller', 'admin'])) as any;
+  if (!auth.ok) return { success: false, error: 'Harus login untuk follow.' };
+  
+  const currentUserId = auth.session?.user?.id;
+  if (currentUserId === targetUserId) return { success: false, error: 'Tidak bisa follow diri sendiri.' };
+
+  const existing = await db.select().from(followers).where(and(eq(followers.followerId, currentUserId), eq(followers.followingId, targetUserId))).limit(1);
+
+  if (existing.length > 0) {
+    await db.delete(followers).where(eq(followers.id, existing[0].id));
+    return { success: true, isFollowing: false };
+  } else {
+    await db.insert(followers).values({
+      followerId: currentUserId,
+      followingId: targetUserId,
+    });
+    return { success: true, isFollowing: true };
+  }
+}
+

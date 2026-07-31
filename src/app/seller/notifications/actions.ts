@@ -19,9 +19,11 @@ export async function markNotificationAsRead(notificationId: string) {
   const auth = await requireRole(['seller', 'customer']) as any;
   if (!auth.ok) return { success: false, error: 'Unauthorized' };
 
-  await markAsRead(notificationId);
+  const userId = auth.session?.user?.id;
+  await markAsRead(notificationId, userId);
   revalidatePath('/seller/dashboard');
   revalidatePath('/seller/orders');
+  revalidatePath('/notifications');
 
   return { success: true };
 }
@@ -34,6 +36,7 @@ export async function markAllNotificationsAsRead() {
   await markAllAsRead(userId);
   revalidatePath('/seller/dashboard');
   revalidatePath('/seller/orders');
+  revalidatePath('/notifications');
 
   return { success: true };
 }

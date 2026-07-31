@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getMyProfile, updateMyProfile, updateMyEmail, changeMyPassword } from './actions';
 import { getMyShippingAddress, saveShippingAddress } from '@/app/customer/checkout/actions';
 
 type Tab = 'biodata' | 'address' | 'store' | 'security';
+
+function isTab(value: string | null): value is Tab {
+  return value === 'biodata' || value === 'address' || value === 'store' || value === 'security';
+}
 
 type Profile = {
   id: string;
@@ -26,12 +30,14 @@ type Profile = {
   storeDescription?: string | null;
 };
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
-  const user = session?.user as any;
-
-  const [activeTab, setActiveTab] = useState<Tab>('biodata');
+  const searchParams = useSearchParams();
+  const user = session?.user;
+  const currentRole = user?.role ?? 'customer';
+  const requestedTab = isTab(searchParams.get('tab')) ? searchParams.get('tab') : null;
+  const fromSource = searchParams.get('from');
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -195,7 +201,25 @@ export default function ProfilePage() {
     { key: 'security', label: 'Keamanan', icon: '🔒' },
   ];
 
-  const visibleTabs = allTabs.filter(t => !t.roles || t.roles.includes(user?.role));
+  const visibleTabs = allTabs.filter((tab) => !tab.roles || tab.roles.includes(currentRole));
+  const defaultTab = visibleTabs[0]?.key || 'biodata';
+  const activeTab =
+    requestedTab && visibleTabs.some((tab) => tab.key === requestedTab)
+      ? requestedTab
+      : defaultTab;
+
+  const handleTabChange = (tab: Tab) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (tab === defaultTab) {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+
+    const href = params.size > 0 ? `/profile?${params.toString()}` : '/profile';
+    router.replace(href, { scroll: false });
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--neo-bg)]">
@@ -207,7 +231,7 @@ export default function ProfilePage() {
         <div className="neo-card p-6 mb-6 animate-slide-up">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             {/* Avatar */}
-            <div className={`w-20 h-20 rounded-2xl border-[4px] border-[var(--neo-black)] shadow-[var(--neo-shadow)] flex items-center justify-center text-4xl font-extrabold text-white flex-shrink-0 select-none ${roleBg[user?.role] || 'bg-[var(--neo-gray)]'}`}>
+            <div className={`w-20 h-20 rounded-2xl border-[4px] border-[var(--neo-black)] shadow-[var(--neo-shadow)] flex items-center justify-center text-4xl font-extrabold text-white flex-shrink-0 select-none ${roleBg[currentRole] || 'bg-[var(--neo-gray)]'}`}>
               {profile?.name?.charAt(0)?.toUpperCase() || '?'}
             </div>
 
@@ -220,8 +244,8 @@ export default function ProfilePage() {
                 <p className="text-sm font-medium opacity-70 mt-1 line-clamp-2">{profile.bio}</p>
               )}
               <div className="flex flex-wrap gap-2 mt-2">
-                <span className={`neo-sticker text-white text-xs rotate-0 ${roleBg[user?.role] || 'bg-gray-400'}`}>
-                  {roleLabel[user?.role] || user?.role}
+                <span className={`neo-sticker text-white text-xs rotate-0 ${roleBg[currentRole] || 'bg-gray-400'}`}>
+                  {roleLabel[currentRole] || currentRole}
                 </span>
                 {profile?.storeName && (
                   <span className="neo-sticker bg-[var(--neo-accent)] text-[var(--neo-black)] text-xs rotate-0">
@@ -238,17 +262,17 @@ export default function ProfilePage() {
 
             {/* Quick stats / links */}
             <div className="flex gap-2 flex-wrap sm:flex-nowrap">
-              {user?.role === 'customer' && (
+              {currentRole === 'customer' && (
                 <Link href="/customer/orders" className="neo-btn neo-btn-outline text-xs py-2 px-3 font-bold">
                   🧾 Pesanan
                 </Link>
               )}
-              {user?.role === 'seller' && (
+              {currentRole === 'seller' && (
                 <Link href="/seller/dashboard" className="neo-btn neo-btn-secondary text-xs py-2 px-3 font-bold">
                   📊 Dashboard
                 </Link>
               )}
-              {user?.role === 'admin' && (
+              {currentRole === 'admin' && (
                 <Link href="/admin/dashboard" className="neo-btn text-xs py-2 px-3 font-bold bg-[#1A1A2E] text-[#FFD23F] border-[#FFD23F]">
                   ⚙️ Admin Panel
                 </Link>
@@ -268,7 +292,7 @@ export default function ProfilePage() {
                 {visibleTabs.map(tab => (
                   <button
                     key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={() => handleTabChange(tab.key)}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold text-left transition-colors
                       ${activeTab === tab.key
                         ? 'bg-[var(--neo-accent)] text-[var(--neo-black)]'
@@ -286,6 +310,13 @@ export default function ProfilePage() {
 
           {/* ===== KONTEN ===== */}
           <div className="flex-1 animate-slide-up stagger-1">
+            {(fromSource === 'seller-onboarding' || fromSource === 'seller-settings') && activeTab === 'store' && (
+              <div className="neo-card p-4 mb-5 bg-[var(--neo-accent)]/20">
+                <p className="text-sm font-bold opacity-80">
+                  Lengkapi nama toko dan deskripsi singkat agar checklist onboarding penjual bisa lanjut ke langkah berikutnya.
+                </p>
+              </div>
+            )}
 
             {/* ===== BIODATA ===== */}
             {activeTab === 'biodata' && (
@@ -533,10 +564,10 @@ export default function ProfilePage() {
                   <div className="p-5 border-[3px] border-[var(--neo-black)] rounded-xl bg-white shadow-[var(--neo-shadow-sm)] flex items-center justify-between gap-4">
                     <div>
                       <p className="font-extrabold mb-0.5">🎭 Role Akun</p>
-                      <p className="text-sm opacity-60 font-medium capitalize">{user?.role}</p>
+                      <p className="text-sm opacity-60 font-medium capitalize">{currentRole}</p>
                     </div>
-                    <span className={`neo-sticker text-xs rotate-0 ${user?.role === 'admin' ? 'bg-[#1A1A2E] text-[#FFD23F]' : user?.role === 'seller' ? 'bg-[#7B4AE2] text-white' : 'bg-[#FF6B35] text-white'}`}>
-                      {roleLabel[user?.role] || user?.role}
+                    <span className={`neo-sticker text-xs rotate-0 ${currentRole === 'admin' ? 'bg-[#1A1A2E] text-[#FFD23F]' : currentRole === 'seller' ? 'bg-[#7B4AE2] text-white' : 'bg-[#FF6B35] text-white'}`}>
+                      {roleLabel[currentRole] || currentRole}
                     </span>
                   </div>
                 </div>
@@ -634,5 +665,19 @@ export default function ProfilePage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--neo-bg)] flex items-center justify-center">
+          <div className="text-4xl animate-float">⏳</div>
+        </div>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
   );
 }

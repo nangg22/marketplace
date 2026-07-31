@@ -15,6 +15,10 @@ export async function addProductAction(formData: FormData) {
   const name = formData.get('name') as string;
   const price = Number(formData.get('price'));
   const description = formData.get('description') as string;
+  const condition = (formData.get('condition') as 'baru' | 'like_new' | 'minus_ringan' | 'minus_berat') || 'baru';
+  const isNegotiable = formData.get('isNegotiable') === 'true';
+  const category = (formData.get('category') as string) || 'Lainnya';
+  const stock = Number(formData.get('stock') || 1);
 
   const currentUser = await db.select().from(users).where(eq(users.email, session.user.email as string)).limit(1);
   const sellerId = currentUser[0].id;
@@ -32,12 +36,16 @@ export async function addProductAction(formData: FormData) {
   const primaryImageUrl = primaryImage ? primaryImage.url : '';
 
   // Menyimpan data produk beserta URL gambar utama
-  const [newProduct] = await db.insert(products).values({ 
-    name, 
-    price, 
-    description, 
-    sellerId, 
-    imageUrl: primaryImageUrl
+  const [newProduct] = await db.insert(products).values({
+    name,
+    price,
+    description,
+    sellerId,
+    imageUrl: primaryImageUrl,
+    condition,
+    isNegotiable,
+    category,
+    stock,
   }).returning();
   
   if (images.length > 0) {

@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { products, users, categories } from '@/lib/schema';
 import { ilike, eq, asc, desc, and, gte, lte } from 'drizzle-orm';
 import Link from 'next/link';
-import PriceFilter from '@/components/PriceFilter';
+import SidebarFilter from '@/components/SidebarFilter';
 import MobileFilterDrawer from '@/components/MobileFilterDrawer';
 
 // Ikon default per slug kategori
@@ -23,7 +23,7 @@ export function getCategoryIcon(slug: string) {
 export default async function AllProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; sort?: string; q?: string; minPrice?: string; maxPrice?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; q?: string; minPrice?: string; maxPrice?: string; condition?: string; nego?: string }>;
 }) {
   const params = await searchParams;
   const activeCategory = params.category || '';
@@ -31,6 +31,8 @@ export default async function AllProductsPage({
   const q = params.q || '';
   const minPrice = params.minPrice;
   const maxPrice = params.maxPrice;
+  const condition = params.condition;
+  const nego = params.nego;
 
   // Ambil kategori dari DB
   const dbCategories = await db.select().from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.sortOrder), asc(categories.name));
@@ -47,7 +49,11 @@ export default async function AllProductsPage({
       price: products.price,
       imageUrl: products.imageUrl,
       category: products.category,
+      condition: products.condition,
+      isNegotiable: products.isNegotiable,
+      sellerId: products.sellerId,
       sellerName: users.name,
+      stock: products.stock,
     })
     .from(products)
     .leftJoin(users, eq(products.sellerId, users.id));
@@ -65,6 +71,12 @@ export default async function AllProductsPage({
   }
   if (maxPrice) {
     conditions.push(lte(products.price, Number(maxPrice)));
+  }
+  if (condition) {
+    conditions.push(eq(products.condition, condition as any));
+  }
+  if (nego === 'true') {
+    conditions.push(eq(products.isNegotiable, true));
   }
 
   let query = baseSelect.where(and(...conditions)).$dynamic();
@@ -161,7 +173,7 @@ export default async function AllProductsPage({
               </div>
 
               <div className="mt-6 sticky top-[380px]">
-                <PriceFilter className="w-full" />
+                <SidebarFilter className="w-full" />
               </div>
             </aside>
 

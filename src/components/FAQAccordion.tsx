@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 const FAQ_ITEMS = [
-  { q: "Bagaimana cara berbelanja di MallPedia?", a: "Pilih produk, tambahkan ke keranjang, lalu checkout dan pilih metode pembayaran." },
+  { q: "Bagaimana cara berbelanja di LakuLagi?", a: "Pilih produk, tambahkan ke keranjang, lalu checkout dan pilih metode pembayaran." },
   { q: "Apakah pembayaran aman?", a: "Ya, semua pembayaran diproses melalui sistem yang aman dan terpantau." },
   { q: "Bagaimana jika barang tidak sesuai?", a: "Kamu bisa mengajukan retur melalui halaman detail pesanan dalam 7 hari setelah barang diterima." },
   { q: "Bagaimana cara jadi penjual?", a: "Daftar sebagai seller melalui halaman registrasi, lalu ikuti panduan onboarding di dashboard." },

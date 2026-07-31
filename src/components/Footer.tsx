@@ -7,13 +7,13 @@ export default function Footer() {
         <div className="mb-4">
           <span className="text-2xl font-extrabold">
             <span className="inline-block bg-[var(--neo-primary)] px-2 py-0.5 border-[2px] border-white rounded-lg mr-1">
-              Mall
+              Laku
             </span>
-            Pedia
+            Lagi
           </span>
         </div>
         <p className="text-sm opacity-70 font-medium mb-6">
-          Marketplace  — Tugas Akhir © 2026
+          LakuLagi — Marketplace Preloved Terpercaya © 2026
         </p>
 
         <div className="flex flex-wrap justify-center gap-4 mb-8 text-sm font-bold">

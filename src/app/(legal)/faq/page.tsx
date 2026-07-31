@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import FAQAccordion from "@/components/FAQAccordion";
 
 export const metadata: Metadata = {
-  title: "FAQ | MallPedia",
+  title: "FAQ | LakuLagi",
 };
 
 export default function FAQPage() {

@@ -4,10 +4,19 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+function getSafeCallbackUrl(callbackUrl: string | null) {
+  if (!callbackUrl || !callbackUrl.startsWith('/') || callbackUrl.startsWith('//')) {
+    return null;
+  }
+
+  return callbackUrl;
+}
+
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roleParam = searchParams.get('role');
+  const callbackUrl = getSafeCallbackUrl(searchParams.get('callbackUrl'));
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,7 +45,11 @@ function RegisterForm() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Pendaftaran gagal. Coba lagi.'); setLoading(false); return; }
-      router.push('/login?registered=1');
+      const params = new URLSearchParams();
+      params.set('registered', '1');
+      params.set('tab', role);
+      if (callbackUrl) params.set('callbackUrl', callbackUrl);
+      router.push(`/login?${params.toString()}`);
     } catch {
       setError('Terjadi kesalahan jaringan. Coba lagi.');
       setLoading(false);
@@ -56,9 +69,9 @@ function RegisterForm() {
           <Link href="/">
             <span className="text-3xl font-extrabold tracking-tight">
               <span className="inline-block bg-[var(--neo-primary)] text-white px-3 py-1 border-[3px] border-[var(--neo-black)] rounded-xl shadow-[var(--neo-shadow-sm)] hover:rotate-[-2deg] transition-transform duration-200">
-                Mall
+                Laku
               </span>
-              <span className="text-[var(--neo-black)] ml-1">Pedia</span>
+              <span className="text-[var(--neo-black)] ml-1">Lagi</span>
             </span>
           </Link>
         </div>
@@ -72,7 +85,7 @@ function RegisterForm() {
             <h1 className="text-2xl font-extrabold text-[var(--neo-black)]">
               Daftar di{' '}
               <span className="inline-block bg-[var(--neo-secondary)] text-white px-2 py-0.5 border-[2px] border-[var(--neo-black)] rounded-lg">
-                MallPedia
+                LakuLagi
               </span>
             </h1>
             <p className="mt-2 text-sm font-medium text-[var(--neo-black)] opacity-60">
@@ -131,7 +144,7 @@ function RegisterForm() {
 
           <div className="text-center">
             <p className="text-sm font-medium text-[var(--neo-black)] opacity-60 mb-3">Sudah punya akun?</p>
-            <Link href="/login">
+            <Link href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/login'}>
               <span className="neo-btn neo-btn-accent text-sm font-extrabold w-full inline-flex justify-center">
                 🔑 Masuk ke Akun
               </span>

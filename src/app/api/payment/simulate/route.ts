@@ -77,7 +77,7 @@ export async function GET(req: Request) {
     type: 'QRIS',
     order_id: orderId,
     amount: amount,
-    merchant: 'MallPedia',
+    merchant: 'LakuLagi',
     timestamp: new Date().toISOString(),
   });
 
@@ -101,7 +101,7 @@ export async function GET(req: Request) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pembayaran QRIS - MallPedia</title>
+  <title>Pembayaran QRIS - LakuLagi</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
@@ -390,7 +390,7 @@ export async function GET(req: Request) {
 
     <div class="qr-container">
       <img src="${qrDataUrl}" alt="QR Code QRIS" />
-      <div class="qr-label">📱 QRIS MallPedia</div>
+      <div class="qr-label">📱 QRIS LakuLagi</div>
     </div>
 
     <div class="amount-box">Rp ${safeFormattedAmount}</div>

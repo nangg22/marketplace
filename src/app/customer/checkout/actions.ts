@@ -138,7 +138,7 @@ export async function createOrder(
 
   const customerId = (auth.session?.user as any)?.id;
   const customerName =
-    (auth.session?.user as any)?.name || 'Pelanggan MallPedia';
+    (auth.session?.user as any)?.name || 'Pelanggan LakuLagi';
 
   if (!customerId) {
     return {

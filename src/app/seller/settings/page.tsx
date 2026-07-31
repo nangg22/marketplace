@@ -6,5 +6,5 @@ import { redirect } from 'next/navigation';
  * Ini juga memicu update hasStoreProfile pada onboarding saat seller menyimpan nama toko.
  */
 export default function SellerSettingsPage() {
-  redirect('/profile');
+  redirect('/profile?tab=store&from=seller-settings');
 }

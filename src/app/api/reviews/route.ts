@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { reviews, orderItems, orders, products } from "@/lib/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       and(
         eq(orders.customerId, session.user.id),
         eq(orderItems.productId, productId),
-        eq(orders.status, "completed")
+        inArray(orders.status, ["delivered", "completed"])
       )
     )
     .limit(1);

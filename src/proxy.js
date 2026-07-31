@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+function isSafeInternalPath(path) {
+  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//');
+}
+
+function canAccessPath(path, role) {
+  if (!isSafeInternalPath(path)) return false;
+  if (path.startsWith('/admin')) return role === 'admin';
+  if (path.startsWith('/seller')) return role === 'seller' || role === 'admin';
+  return true;
+}
+
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
@@ -50,8 +61,20 @@ export async function proxy(request) {
   // ============================
   if (pathname === '/login' || pathname === '/register') {
     if (token) {
-      // Redirect ke halaman sesuai role
       const role = token.role;
+      const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
+      const wantsSellerFlow =
+        request.nextUrl.searchParams.get('tab') === 'seller' ||
+        request.nextUrl.searchParams.get('role') === 'seller';
+
+      if (wantsSellerFlow && role === 'customer') {
+        return NextResponse.redirect(new URL('/become-seller', request.url));
+      }
+
+      if (callbackUrl && canAccessPath(callbackUrl, role)) {
+        return NextResponse.redirect(new URL(callbackUrl, request.url));
+      }
+
       if (role === 'seller') return NextResponse.redirect(new URL('/seller/dashboard', request.url));
       if (role === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       return NextResponse.redirect(new URL('/', request.url));
@@ -67,6 +90,7 @@ export const config = {
     '/customer/:path*',
     '/seller/:path*',
     '/admin/:path*',
+    '/become-seller',
     '/login',
     '/register',
   ],

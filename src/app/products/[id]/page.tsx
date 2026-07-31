@@ -9,7 +9,15 @@ import ReviewForm from '@/components/ReviewForm';
 import ReviewList from '@/components/ReviewList';
 import StarRating from '@/components/StarRating';
 import ProductGallery from '@/components/ProductGallery';
+import WishlistButton from '@/components/WishlistButton';
 import type { Metadata } from 'next';
+
+const CONDITION_MAP: Record<string, { emoji: string; label: string; desc: string; color: string; textColor: string }> = {
+  baru:         { emoji: '✨', label: 'Baru',         desc: 'Belum pernah dipakai, masih tersegel',   color: '#FFD23F', textColor: '#1A1A2E' },
+  like_new:     { emoji: '💎', label: 'Like New',     desc: 'Pernah dipakai 1-2x, mulus banget',      color: '#7B4AE2', textColor: '#ffffff' },
+  minus_ringan: { emoji: '⚠️', label: 'Minus Ringan', desc: 'Ada cacat kecil, masih layak pakai',    color: '#FF6B35', textColor: '#ffffff' },
+  minus_berat:  { emoji: '💀', label: 'Minus Berat',  desc: 'Perlu perbaikan, dijual apa adanya',    color: '#1A1A2E', textColor: '#FFD23F' },
+};
 
 async function getProduct(id: string) {
   const result = await db
@@ -20,7 +28,16 @@ async function getProduct(id: string) {
       description: products.description,
       imageUrl: products.imageUrl,
       category: products.category,
+      condition: products.condition,
+      isNegotiable: products.isNegotiable,
+      stock: products.stock,
+      rating: products.rating,
+      ratingCount: products.ratingCount,
+      sellerId: products.sellerId,
       sellerName: users.name,
+      sellerStoreName: users.storeName,
+      sellerAvatarUrl: users.avatarUrl,
+      sellerBio: users.storeDescription,
     })
     .from(products)
     .leftJoin(users, eq(products.sellerId, users.id))
@@ -39,15 +56,15 @@ export async function generateMetadata({
   const product = await getProduct(resolvedParams.id);
 
   if (!product) {
-    return { title: "Produk tidak ditemukan | MallPedia" };
+    return { title: "Produk tidak ditemukan | LakuLagi" };
   }
 
   const description = product.description
     ? product.description.slice(0, 155)
-    : `Beli ${product.name} dengan harga terbaik di MallPedia.`;
+    : `Beli ${product.name} dengan harga terbaik di LakuLagi.`;
 
   return {
-    title: `${product.name} | MallPedia`,
+    title: `${product.name} | LakuLagi`,
     description,
     openGraph: {
       title: product.name,
@@ -102,10 +119,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const resolvedParams = await params;
   const productId = resolvedParams.id;
 
-  // Fetch product + nama seller
   const product = await getProduct(productId);
   
-  // Fetch multiple images dari db
   const imagesRecord = await db
     .select({ url: productImages.url })
     .from(productImages)
@@ -114,11 +129,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     
   let displayImages = imagesRecord;
   if (imagesRecord.length === 0 && product?.imageUrl) {
-    // Fallback: jika tak ada data di product_images, gunakan imageUrl produk
     displayImages = [{ url: product.imageUrl }];
   }
 
-  // Fetch reviews + rata-rata rating
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
   let reviewsData: Array<{
     id: string;
@@ -143,12 +156,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       totalReviews = reviewJson.total;
     }
   } catch {
-    // Gagal fetch reviews, lanjut tampil produk tanpa review
+    // silently continue without reviews
   }
 
-  const formatRupiah = (price: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
-  };
+  const formatRupiah = (price: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
 
   if (!product) {
     return (
@@ -158,9 +170,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <div className="neo-card p-12 text-center max-w-md w-full animate-bounce-in">
             <div className="text-6xl mb-4">🕵️‍♂️</div>
             <h1 className="text-2xl font-extrabold mb-2">Produk Tidak Ditemukan</h1>
-            <p className="opacity-60 mb-6 font-medium">Barang yang Anda cari mungkin sudah dihapus atau URL tidak valid.</p>
+            <p className="opacity-60 mb-6 font-medium">Barang ini mungkin sudah terjual atau URL-nya tidak valid.</p>
             <Link href="/products">
-              <button className="neo-btn neo-btn-primary w-full">Kembali Belanja</button>
+              <button className="neo-btn neo-btn-primary w-full">← Kembali Belanja</button>
             </Link>
           </div>
         </main>
@@ -169,115 +181,224 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     );
   }
 
+  const conditionInfo = product.condition ? CONDITION_MAP[product.condition] : null;
+  const sellerInitial = (product.sellerStoreName || product.sellerName || '?').charAt(0).toUpperCase();
+
   return (
     <div className="bg-[var(--neo-bg)] min-h-screen text-[var(--neo-black)] flex flex-col">
       <ProductJsonLd product={product} averageRating={averageRating} reviewCount={totalReviews} />
       <Navbar />
       
-      <main className="flex-grow max-w-6xl mx-auto px-4 py-10 w-full relative">
-        <div className="mb-6 animate-slide-up">
-          <Link href="/products" className="neo-link text-sm font-bold opacity-60 hover:opacity-100">
-            ← Kembali ke Semua Produk
-          </Link>
+      <main className="flex-grow max-w-6xl mx-auto px-4 py-8 w-full">
+
+        {/* Breadcrumb */}
+        <div className="mb-5 animate-slide-up flex items-center gap-2 text-sm font-bold opacity-60">
+          <Link href="/" className="hover:opacity-100 hover:underline">Beranda</Link>
+          <span>›</span>
+          <Link href="/products" className="hover:opacity-100 hover:underline">Produk</Link>
+          <span>›</span>
+          <span className="opacity-100 text-[var(--neo-black)] line-clamp-1">{product.name}</span>
         </div>
 
-        <div className="bg-white border-[4px] border-[var(--neo-black)] rounded-2xl overflow-hidden shadow-[var(--neo-shadow-lg)] flex flex-col md:flex-row animate-slide-up stagger-1">
-          {/* Bagian Gambar */}
-          <div className="w-full md:w-1/2 bg-[var(--neo-gray)] border-b-[4px] md:border-b-0 md:border-r-[4px] border-[var(--neo-black)] p-8 flex flex-col relative min-h-[300px]">
-            {/* Dekorasi Badge */}
-            <div className="absolute top-4 left-4 z-10">
-              <span className="neo-sticker bg-[var(--neo-accent)] text-sm rotate-[-3deg]">
-                ✨ Original
-              </span>
+        {/* Main Card */}
+        <div className="bg-white border-[4px] border-[var(--neo-black)] rounded-2xl overflow-hidden shadow-[6px_6px_0px_var(--neo-black)] flex flex-col md:flex-row animate-slide-up stagger-1 mb-6">
+
+          {/* ===== KIRI: Galeri Foto ===== */}
+          <div className="w-full md:w-[48%] bg-[var(--neo-gray)] border-b-[4px] md:border-b-0 md:border-r-[4px] border-[var(--neo-black)] relative min-h-[320px]">
+            {/* Badge Kondisi */}
+            {conditionInfo && (
+              <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                <span
+                  className="neo-sticker text-sm font-extrabold px-3 py-1.5 border-[3px] border-[var(--neo-black)] shadow-[3px_3px_0px_var(--neo-black)]"
+                  style={{ background: conditionInfo.color, color: conditionInfo.textColor }}
+                >
+                  {conditionInfo.emoji} {conditionInfo.label}
+                </span>
+                {product.isNegotiable && (
+                  <span className="neo-sticker bg-[var(--neo-pink)] text-white text-sm font-extrabold px-3 py-1.5 border-[3px] border-[var(--neo-black)] shadow-[3px_3px_0px_var(--neo-black)]">
+                    🤝 Bisa Nego
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="p-6 h-full flex items-center">
+              <ProductGallery images={displayImages} />
             </div>
-            
-            <ProductGallery images={displayImages} />
           </div>
 
-          {/* Bagian Info */}
-          <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col">
-            <div className="mb-2">
-              <span className="inline-block bg-[var(--neo-pink)] text-white px-3 py-1 border-[2px] border-[var(--neo-black)] rounded-lg shadow-[2px_2px_0px_var(--neo-black)] text-xs font-bold uppercase tracking-wider rotate-[1deg]">
-                🏪 {product.sellerName || 'Toko Penjual'}
-              </span>
+          {/* ===== KANAN: Info Produk ===== */}
+          <div className="w-full md:w-[52%] p-6 md:p-8 flex flex-col">
+
+            {/* Category + Seller tag */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {product.category && (
+                <span className="neo-sticker bg-[var(--neo-secondary)] text-white text-xs px-2 py-1 border-[2px] border-[var(--neo-black)] shadow-[2px_2px_0px_var(--neo-black)] rotate-0">
+                  📦 {product.category}
+                </span>
+              )}
+              {totalReviews > 0 && (
+                <span className="neo-sticker bg-white text-[var(--neo-black)] text-xs px-2 py-1 border-[2px] border-[var(--neo-black)] shadow-[2px_2px_0px_var(--neo-black)] rotate-0">
+                  ⭐ {averageRating} ({totalReviews} review)
+                </span>
+              )}
             </div>
-            
-            <h1 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">
-              {product.name}
-            </h1>
-            
-            <div className="mb-8">
-              <span className="inline-block bg-[var(--neo-accent)] text-[var(--neo-black)] text-3xl md:text-4xl font-extrabold px-4 py-2 border-[4px] border-[var(--neo-black)] rounded-xl shadow-[4px_4px_0px_var(--neo-black)] rotate-[-2deg]">
+
+            <div className="flex justify-between items-start gap-4 mb-4">
+              <h1 className="text-2xl md:text-3xl font-extrabold leading-tight">{product.name}</h1>
+              <div className="relative mt-1 w-10 h-10 flex-shrink-0">
+                <WishlistButton productId={product.id} />
+              </div>
+            </div>
+
+            {/* Harga + stok */}
+            <div className="flex items-end gap-4 mb-5">
+              <span className="inline-block bg-[var(--neo-accent)] text-[var(--neo-black)] text-2xl md:text-3xl font-extrabold px-4 py-2 border-[3px] border-[var(--neo-black)] rounded-xl shadow-[4px_4px_0px_var(--neo-black)] rotate-[-1deg]">
                 {formatRupiah(product.price)}
               </span>
+              <div className="flex flex-col gap-1 text-xs font-bold">
+                {/* Indikator stok dengan warna */}
+                {product.stock === 0 ? (
+                  <span className="inline-flex items-center gap-1.5 bg-red-500 text-white px-3 py-1.5 rounded-lg border-[2px] border-[var(--neo-black)] shadow-[2px_2px_0px_var(--neo-black)] font-extrabold">
+                    ❌ Stok Habis
+                  </span>
+                ) : product.stock <= 3 ? (
+                  <span className="inline-flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-lg border-[2px] border-[var(--neo-black)] shadow-[2px_2px_0px_var(--neo-black)] font-extrabold animate-pulse">
+                    🔥 Sisa {product.stock} lagi!
+                  </span>
+                ) : product.stock <= 10 ? (
+                  <span className="inline-flex items-center gap-1.5 bg-[var(--neo-accent)] text-[var(--neo-black)] px-3 py-1.5 rounded-lg border-[2px] border-[var(--neo-black)] shadow-[2px_2px_0px_var(--neo-black)] font-extrabold">
+                    ⚡ Stok terbatas: {product.stock}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 bg-[var(--neo-green)] text-[var(--neo-black)] px-3 py-1.5 rounded-lg border-[2px] border-[var(--neo-black)] shadow-[2px_2px_0px_var(--neo-black)] font-extrabold">
+                    ✅ Stok tersedia: {product.stock}
+                  </span>
+                )}
+                {product.isNegotiable && (
+                  <span className="inline-flex items-center gap-1 text-[var(--neo-pink)] font-bold">🤝 Harga bisa nego</span>
+                )}
+              </div>
             </div>
 
-            <div className="neo-zigzag opacity-10 mb-6 h-[10px]" />
+            {/* Kondisi detail */}
+            {conditionInfo && (
+              <div
+                className="rounded-xl border-[3px] border-[var(--neo-black)] p-3 mb-5 flex items-center gap-3"
+                style={{ background: conditionInfo.color + '22' }}
+              >
+                <span className="text-3xl">{conditionInfo.emoji}</span>
+                <div>
+                  <p className="font-extrabold text-sm">{conditionInfo.label}</p>
+                  <p className="text-xs opacity-70 font-medium">{conditionInfo.desc}</p>
+                </div>
+              </div>
+            )}
 
-            <div className="flex-grow mb-8">
-              <h3 className="font-extrabold text-lg mb-2">Deskripsi Produk</h3>
-              <p className="font-medium opacity-80 leading-relaxed whitespace-pre-wrap">
-                {product.description || "Penjual belum menambahkan deskripsi untuk produk ini. Tapi tenang saja, barangnya pasti keren! 😎"}
+            {/* Deskripsi */}
+            <div className="flex-grow mb-6">
+              <h3 className="font-extrabold text-sm uppercase tracking-wider opacity-50 mb-2">Deskripsi</h3>
+              <p className="font-medium opacity-80 leading-relaxed whitespace-pre-wrap text-sm">
+                {product.description || "Penjual belum menambahkan deskripsi. Hubungi seller untuk info lebih lanjut! 😊"}
               </p>
             </div>
 
-            <div className="mt-auto flex flex-col sm:flex-row gap-4">
-              <AddToCartButton
-                product={{ id: product.id, name: product.name, price: product.price, storeName: product.sellerName || 'Toko Penjual' }}
-              />
-              <AddToCartButton
-                product={{ id: product.id, name: product.name, price: product.price, storeName: product.sellerName || 'Toko Penjual' }}
-                buyNow
-              />
+            {/* CTA */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              {product.stock === 0 ? (
+                <div className="flex-1 neo-btn bg-gray-300 text-gray-600 border-[var(--neo-black)] cursor-not-allowed py-4 text-lg font-extrabold">
+                  ❌ Stok Habis
+                </div>
+              ) : (
+                <>
+                  <AddToCartButton
+                    product={{ id: product.id, name: product.name, price: product.price, storeName: product.sellerStoreName || product.sellerName || 'Toko Penjual' }}
+                  />
+                  <AddToCartButton
+                    product={{ id: product.id, name: product.name, price: product.price, storeName: product.sellerStoreName || product.sellerName || 'Toko Penjual' }}
+                    buyNow
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Seller Card */}
+            <div className="border-t-[3px] border-dashed border-[var(--neo-black)] pt-5">
+              <p className="text-xs font-bold uppercase opacity-40 mb-3">Dijual Oleh</p>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl border-[3px] border-[var(--neo-black)] bg-[var(--neo-secondary)] text-white flex items-center justify-center font-extrabold text-xl shadow-[2px_2px_0px_var(--neo-black)] flex-shrink-0">
+                  {product.sellerAvatarUrl ? (
+                    <img src={product.sellerAvatarUrl} alt={sellerInitial} className="w-full h-full object-cover rounded-[9px]" />
+                  ) : sellerInitial}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-base leading-tight truncate">
+                    {product.sellerStoreName || product.sellerName || 'Toko Penjual'}
+                  </p>
+                  {product.sellerBio && (
+                    <p className="text-xs opacity-60 font-medium line-clamp-1">{product.sellerBio}</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1 flex-shrink-0">
+                  <button className="neo-btn neo-btn-outline text-xs py-1.5 px-3 w-full">
+                    + Follow
+                  </button>
+                  <form action={async () => {
+                    "use server";
+                    const { getOrCreateChat } = await import('@/app/chat/actions');
+                    const { redirect } = await import('next/navigation');
+                    const res = await getOrCreateChat(product.sellerId, product.id);
+                    if (res.success && res.chatId) redirect(`/chat/${res.chatId}`);
+                  }}>
+                    <button type="submit" className="neo-btn bg-[var(--neo-primary)] text-white text-xs py-1.5 px-3 w-full">
+                      💬 Chat
+                    </button>
+                  </form>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Jaminan MallPedia */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 animate-slide-up stagger-2">
-          <div className="neo-card p-6 flex items-start gap-4 hover-lift">
-            <div className="text-4xl">🛡️</div>
-            <div>
-              <h4 className="font-extrabold text-lg">Garansi 100%</h4>
-              <p className="text-sm font-medium opacity-70">Uang kembali jika barang tidak sesuai atau rusak.</p>
+        {/* Jaminan Aman */}
+        <div className="grid grid-cols-3 gap-4 mb-10 animate-slide-up stagger-2">
+          {[
+            { emoji: '🛡️', title: 'Garansi Uang Kembali', desc: 'Barang tidak sesuai? Refund otomatis.' },
+            { emoji: '🤝', title: 'Penjual Terverifikasi', desc: 'Semua seller sudah melalui proses seleksi.' },
+            { emoji: '🚀', title: 'Pengiriman Aman', desc: 'Dikemas bubble wrap, tiba utuh.' },
+          ].map((item) => (
+            <div key={item.title} className="neo-card p-4 flex flex-col items-center text-center gap-2 hover-lift">
+              <span className="text-3xl">{item.emoji}</span>
+              <h4 className="font-extrabold text-xs leading-tight">{item.title}</h4>
+              <p className="text-[10px] font-medium opacity-60 hidden sm:block">{item.desc}</p>
             </div>
-          </div>
-          <div className="neo-card p-6 flex items-start gap-4 hover-lift">
-            <div className="text-4xl">🚚</div>
-            <div>
-              <h4 className="font-extrabold text-lg">Gratis Ongkir</h4>
-              <p className="text-sm font-medium opacity-70">Pengiriman gratis ke seluruh pulau jawa.</p>
-            </div>
-          </div>
-          <div className="neo-card p-6 flex items-start gap-4 hover-lift">
-            <div className="text-4xl">💎</div>
-            <div>
-              <h4 className="font-extrabold text-lg">Kualitas Premium</h4>
-              <p className="text-sm font-medium opacity-70">Barang disortir langsung oleh kurator handal.</p>
-            </div>
-          </div>
+          ))}
         </div>
-        {/* Section Rating & Review */}
-        <div className="mt-12 animate-slide-up stagger-3">
-          <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-3">
-            ⭐ Rating &amp; Review
-          </h2>
 
-          {/* Ringkasan Rating */}
-          <div className="neo-card p-6 mb-6 flex items-center gap-4">
-            <span className="text-5xl font-extrabold">{averageRating}</span>
+        {/* Rating & Review */}
+        <div className="animate-slide-up stagger-3">
+          <div className="flex items-center gap-3 mb-6 border-b-[3px] border-[var(--neo-black)] pb-4">
+            <h2 className="text-2xl font-extrabold flex items-center gap-2">
+              <span className="bg-[var(--neo-black)] text-[var(--neo-accent)] p-2 rounded-xl rotate-[-2deg] text-sm">⭐</span>
+              Rating & Review
+            </h2>
+            <span className="text-sm font-bold opacity-50">{totalReviews} ulasan</span>
+          </div>
+
+          <div className="neo-card p-5 mb-5 flex items-center gap-5">
+            <div className="text-center">
+              <div className="text-5xl font-extrabold">{averageRating}</div>
+              <div className="text-xs opacity-50 font-bold mt-1">dari 5.0</div>
+            </div>
             <div>
               <StarRating value={Number(averageRating)} readOnly size={24} />
-              <p className="text-sm text-gray-500 mt-1">dari {totalReviews} review</p>
+              <p className="text-sm font-medium opacity-60 mt-1">{totalReviews} pembeli sudah review</p>
             </div>
           </div>
 
-          {/* Form Review */}
           <div className="mb-6">
             <ReviewForm productId={productId} />
           </div>
 
-          {/* Daftar Review */}
           <div className="neo-card p-6">
             <ReviewList reviews={reviewsData} />
           </div>

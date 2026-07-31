@@ -1,7 +1,27 @@
-import { getServerSession } from "next-auth";
+import { getServerSession, type Session } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export async function requireRole(allowedRoles: string[]) {
+type RequireRoleResult =
+  | {
+      ok: true;
+      status: 200;
+      message: "OK";
+      session: Session;
+    }
+  | {
+      ok: false;
+      status: 401;
+      message: "Unauthorized";
+      session: null;
+    }
+  | {
+      ok: false;
+      status: 403;
+      message: "Forbidden";
+      session: Session;
+    };
+
+export async function requireRole(allowedRoles: string[]): Promise<RequireRoleResult> {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
@@ -13,7 +33,7 @@ export async function requireRole(allowedRoles: string[]) {
     };
   }
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
 
   if (!allowedRoles.includes(role)) {
     return {

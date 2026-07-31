@@ -9,7 +9,7 @@ interface OnboardingStatus {
 
 export default function SellerOnboardingChecklist({ status }: { status: OnboardingStatus }) {
   const steps = [
-    { key: "hasStoreProfile", label: "Lengkapi profil toko", href: "/seller/settings" },
+    { key: "hasStoreProfile", label: "Lengkapi profil toko", href: "/profile?tab=store&from=seller-onboarding" },
     { key: "hasFirstProduct", label: "Upload produk pertama", href: "/seller/products/create" },
     { key: "hasPaymentSetup", label: "Hubungkan rekening pembayaran", href: "/seller/payment" },
   ] as const;

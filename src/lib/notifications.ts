@@ -2,13 +2,14 @@ import { db } from "@/lib/db";
 import { notifications } from "@/lib/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
-type NotificationType = 
+export type NotificationType =
   | "new_order" 
   | "order_paid" 
   | "order_processing" 
   | "order_shipped" 
   | "order_delivered"
-  | "refund_requested";
+  | "refund_requested"
+  | "new_message";
 
 interface CreateNotificationParams {
   userId: string;
@@ -51,11 +52,16 @@ export async function getUnreadCount(userId: string) {
 }
 
 // Tandai satu notifikasi sudah dibaca
-export async function markAsRead(notificationId: string) {
+export async function markAsRead(notificationId: string, userId?: string) {
+  const conditions = [eq(notifications.id, notificationId)];
+  if (userId) {
+    conditions.push(eq(notifications.userId, userId));
+  }
+
   await db
     .update(notifications)
     .set({ isRead: true })
-    .where(eq(notifications.id, notificationId));
+    .where(and(...conditions));
 }
 
 // Tandai semua notifikasi user sudah dibaca
@@ -82,4 +88,38 @@ export async function notifySellerNewOrder(orderId: string, sellerId: string, cu
     message: `${customerName} memesan produk Anda sebesar ${formatRupiah(totalAmount)}. Segera proses pesanan ini.`,
     orderId,
   });
+}
+
+// Notifikasi untuk penerima chat ketika ada pesan baru
+export async function notifyNewMessage(recipientId: string, senderName: string, chatId: string, productName?: string) {
+  const detail = productName ? ` tentang "${productName}"` : '';
+  await createNotification({
+    userId: recipientId,
+    type: "new_message",
+    title: `💬 Pesan baru dari ${senderName}`,
+    message: `${senderName} mengirim pesan${detail}. Balas sekarang!`,
+  });
+}
+
+export function getNotificationHref(
+  notification: { type: string; orderId?: string | null },
+  role?: string | null
+) {
+  if (notification.type === "new_message") {
+    return "/chat";
+  }
+
+  if (notification.orderId) {
+    if (role === "seller" || role === "admin") {
+      return "/seller/orders";
+    }
+
+    return "/customer/orders";
+  }
+
+  if (notification.type === "refund_requested") {
+    return role === "seller" || role === "admin" ? "/seller/refunds" : "/customer/orders";
+  }
+
+  return "/notifications";
 }

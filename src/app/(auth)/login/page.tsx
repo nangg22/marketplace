@@ -2,18 +2,35 @@
 
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
+
+function getSafeCallbackUrl(callbackUrl: string | null) {
+  if (!callbackUrl || !callbackUrl.startsWith('/') || callbackUrl.startsWith('//')) {
+    return null;
+  }
+
+  return callbackUrl;
+}
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const justRegistered = searchParams.get('registered') === '1';
+  const justUpgraded = searchParams.get('upgraded') === '1';
   const tabParam = searchParams.get('tab');
+  const callbackUrl = getSafeCallbackUrl(searchParams.get('callbackUrl'));
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'customer' | 'seller'>(tabParam === 'seller' ? 'seller' : 'customer');
+
+  const registerHref = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set('role', activeTab);
+    if (callbackUrl) params.set('callbackUrl', callbackUrl);
+    return `/register?${params.toString()}`;
+  }, [activeTab, callbackUrl]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,17 +51,21 @@ function LoginContent() {
       setError('Email atau password salah! Coba lagi ya 😅');
       setLoading(false);
     } else {
-      // Ambil data sesi menggunakan getSession dari next-auth
       const sessionData = await getSession();
       const role = sessionData?.user?.role;
-      
-      if (role === 'seller') {
-        router.push('/seller/products');
-      } else if (role === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/');
+
+      let target = callbackUrl;
+      if (!target) {
+        if (role === 'seller') {
+          target = '/seller/dashboard';
+        } else if (role === 'admin') {
+          target = '/admin/dashboard';
+        } else {
+          target = '/';
+        }
       }
+
+      router.push(target);
       router.refresh();
     }
   };
@@ -57,9 +78,9 @@ function LoginContent() {
           <Link href="/" className="inline-block">
             <span className="text-3xl font-extrabold tracking-tight">
               <span className="inline-block bg-[var(--neo-primary)] text-white px-3 py-1 border-[3px] border-[var(--neo-black)] rounded-xl shadow-[var(--neo-shadow-sm)] hover:rotate-[-2deg] transition-transform duration-200">
-                Mall
+                Laku
               </span>
-              <span className="text-[var(--neo-black)] ml-1">Pedia</span>
+              <span className="text-[var(--neo-black)] ml-1">Lagi</span>
             </span>
           </Link>
         </div>
@@ -112,7 +133,7 @@ function LoginContent() {
                   ? 'bg-[var(--neo-primary)] text-white'
                   : 'bg-[var(--neo-secondary)] text-white'
               }`}>
-                MallPedia
+                LakuLagi
               </span>
             </h1>
             <p className="mt-2 text-sm font-medium text-[var(--neo-black)] opacity-60">
@@ -126,6 +147,12 @@ function LoginContent() {
           {justRegistered && (
             <div className="mb-4 p-3 border-[2px] border-[var(--neo-green)] rounded-xl font-bold text-sm flex items-center gap-2" style={{ backgroundColor: '#E8F5E9', color: '#1B5E20' }}>
               ✅ Akun berhasil dibuat! Silakan masuk.
+            </div>
+          )}
+
+          {justUpgraded && (
+            <div className="mb-4 p-3 border-[2px] border-[var(--neo-secondary)] rounded-xl font-bold text-sm flex items-center gap-2 bg-[var(--neo-secondary)]/10 text-[var(--neo-secondary)]">
+              🏪 Mode penjual aktif. Masuk lagi untuk membuka dashboard penjualmu.
             </div>
           )}
 
@@ -206,7 +233,7 @@ function LoginContent() {
             <p className="text-sm font-medium text-[var(--neo-black)] opacity-60 mb-3">
               Belum punya akun?
             </p>
-            <Link href={`/register?role=${activeTab}`} id="register-link">
+            <Link href={registerHref} id="register-link">
               <span className="neo-btn neo-btn-accent text-sm font-extrabold w-full inline-flex">
                 ✨ Daftar Gratis Sekarang
               </span>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/app/seller/notifications/actions';
 
 type Notification = {
@@ -19,11 +20,13 @@ interface NotificationBellProps {
 }
 
 export default function NotificationBell({ initialCount = 0 }: NotificationBellProps) {
+  const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const role = session?.user?.role;
 
   const loadNotifications = async () => {
     setLoading(true);
@@ -34,12 +37,6 @@ export default function NotificationBell({ initialCount = 0 }: NotificationBellP
     }
     setLoading(false);
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      loadNotifications();
-    }
-  }, [isOpen]);
 
   // Refresh count setiap 30 detik
   useEffect(() => {
@@ -61,8 +58,12 @@ export default function NotificationBell({ initialCount = 0 }: NotificationBellP
       );
     }
     setIsOpen(false);
-    if (notification.orderId) {
-      router.push('/seller/orders');
+    if (notification.type === 'new_message') {
+      router.push('/chat');
+    } else if (notification.orderId) {
+      router.push(role === 'seller' || role === 'admin' ? '/seller/orders' : '/customer/orders');
+    } else {
+      router.push('/notifications');
     }
   };
 
@@ -95,6 +96,7 @@ export default function NotificationBell({ initialCount = 0 }: NotificationBellP
       case 'order_shipped': return '🚚';
       case 'order_delivered': return '✅';
       case 'refund_requested': return '🔄';
+      case 'new_message': return '💬';
       default: return '🔔';
     }
   };
@@ -103,7 +105,13 @@ export default function NotificationBell({ initialCount = 0 }: NotificationBellP
     <div className="relative">
       {/* Bell Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const nextOpen = !isOpen;
+          setIsOpen(nextOpen);
+          if (nextOpen) {
+            void loadNotifications();
+          }
+        }}
         className="relative neo-btn neo-btn-outline p-2 hover:bg-[var(--neo-gray)]"
         aria-label="Notifikasi"
       >

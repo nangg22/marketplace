@@ -3,6 +3,8 @@ import { pgTable, uuid, varchar, text, integer, pgEnum, timestamp, boolean, real
 
 // 1. Definisikan Hak Akses (Role)
 export const roleEnum = pgEnum('role', ['customer', 'seller', 'admin']);
+export const conditionEnum = pgEnum('condition', ['baru', 'like_new', 'minus_ringan', 'minus_berat']);
+export const groupRoleEnum = pgEnum('group_role', ['admin', 'member']);
 
 // 2. Tabel Pengguna (Akun Login)
 export const users = pgTable('users', {
@@ -61,6 +63,10 @@ export const products = pgTable('products', {
   // Moderasi oleh admin
   isSuspended: boolean('is_suspended').notNull().default(false),
   suspendReason: text('suspend_reason'),
+
+  // Preloved features
+  condition: conditionEnum('condition').default('baru').notNull(),
+  isNegotiable: boolean('is_negotiable').default(true).notNull(),
 
   // Rating dan review
   rating: real('rating').default(0).notNull(),
@@ -245,3 +251,104 @@ export const notifications = pgTable("notifications", {
   isRead: boolean("is_read").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// -----------------------------------------------------------------------------
+// NEW TABLES FOR SOCIAL-PRELOVED COMMERCE
+// -----------------------------------------------------------------------------
+
+// Tabel Followers (Sistem Pertemanan)
+export const followers = pgTable('followers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  followerId: uuid('follower_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  followingId: uuid('following_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  uniqueFollow: unique().on(table.followerId, table.followingId),
+}));
+
+// Tabel Posts (Feed Sosial)
+export const posts = pgTable('posts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }), // Boleh null jika post publik
+  content: text('content').notNull(),
+  imageUrl: varchar('image_url', { length: 255 }),
+  // Bisa men-tag 1 produk yang sedang dijual
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Tabel Komentar pada Posts
+export const postComments = pgTable('post_comments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  postId: uuid('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  comment: text('comment').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Tabel Likes pada Posts
+export const postLikes = pgTable('post_likes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  postId: uuid('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  uniqueLike: unique().on(table.postId, table.userId),
+}));
+
+// Tabel Groups (Komunitas Jual-Beli)
+export const groups = pgTable('groups', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  bannerUrl: varchar('banner_url', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Tabel Anggota Grup
+export const groupMembers = pgTable('group_members', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: groupRoleEnum('role').default('member').notNull(),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+}, (table) => ({
+  uniqueMember: unique().on(table.groupId, table.userId),
+}));
+
+// -----------------------------------------------------------------------------
+// NEW TABLES FOR CHAT & NEGOTIATION
+// -----------------------------------------------------------------------------
+
+export const offerStatusEnum = pgEnum('offer_status', ['pending', 'accepted', 'rejected']);
+
+export const chats = pgTable('chats', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  buyerId: uuid('buyer_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  sellerId: uuid('seller_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const messages = pgTable('messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  chatId: uuid('chat_id').references(() => chats.id, { onDelete: 'cascade' }).notNull(),
+  senderId: uuid('sender_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  text: text('text').notNull(),
+  isOffer: boolean('is_offer').default(false).notNull(),
+  offerPrice: integer('offer_price'),
+  offerStatus: offerStatusEnum('offer_status'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Tabel Wishlists (Barang Favorit)
+export const wishlists = pgTable('wishlists', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  uniqueWishlist: unique().on(table.userId, table.productId),
+}));

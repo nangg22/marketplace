@@ -33,12 +33,14 @@ const Navbar = () => {
       { href: '/profile', icon: '👤', label: 'Profil & Biodata' },
       { href: '/customer/orders', icon: '🧾', label: 'Riwayat Pesanan' },
       { href: '/customer/cart', icon: '🛒', label: 'Keranjang' },
+      { href: '/chat', icon: '✉️', label: 'Pesan' },
     ],
     seller: [
       { href: '/seller/dashboard', icon: '📊', label: 'Dashboard' },
       { href: '/seller/products', icon: '📦', label: 'Produk Saya' },
       { href: '/seller/products/create', icon: '➕', label: 'Tambah Produk' },
       { href: '/seller/orders', icon: '🧾', label: 'Pesanan Masuk' },
+      { href: '/chat', icon: '✉️', label: 'Pesan' },
       { href: '/profile', icon: '👤', label: 'Edit Profil' },
     ],
     admin: [
@@ -67,16 +69,32 @@ const Navbar = () => {
           <Link href="/" className="flex-shrink-0 flex items-center group" onClick={() => { setMobileOpen(false); setDropdownOpen(false); }}>
             <span className="text-xl sm:text-2xl font-extrabold tracking-tight">
               <span className="inline-block bg-[var(--neo-primary)] text-white px-2 py-0.5 border-[3px] border-[var(--neo-black)] rounded-lg shadow-[var(--neo-shadow-sm)] group-hover:rotate-[-2deg] transition-transform duration-200">
-                Mall
+                Laku
               </span>
               <span className="text-[var(--neo-black)] ml-1 group-hover:rotate-[2deg] inline-block transition-transform duration-200">
-                Pedia
+                Lagi
               </span>
             </span>
           </Link>
 
+          {/* ===== CENTER NAV LINKS ===== */}
+          <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
+            <Link href="/explore" className="flex items-center gap-1.5 neo-btn neo-btn-outline py-1.5 px-3 hover:bg-[var(--neo-accent)] text-sm font-bold" title="Explore Komunitas">
+              <span>🌍</span> Explore
+            </Link>
+            <Link href="/wishlist" className="flex items-center gap-1.5 neo-btn neo-btn-outline py-1.5 px-3 hover:bg-[var(--neo-accent)] text-sm font-bold" title="Favorit">
+              <span>❤️</span> Favorit
+            </Link>
+            <Link href="/chat" className="flex items-center gap-1.5 neo-btn neo-btn-outline py-1.5 px-3 hover:bg-[var(--neo-accent)] text-sm font-bold" title="Pesan Chat">
+              <span>✉️</span> Pesan
+            </Link>
+            <Link href="/notifications" className="flex items-center gap-1.5 neo-btn neo-btn-outline py-1.5 px-3 hover:bg-[var(--neo-accent)] text-sm font-bold" title="Notifikasi">
+              <span>🔔</span> Notif
+            </Link>
+          </div>
+
           {/* ===== SEARCH — desktop ===== */}
-          <form action="/search" method="GET" className="flex-1 max-w-xl mx-4 hidden md:block">
+          <form action="/search" method="GET" className="hidden lg:block max-w-[180px] mr-2 xl:max-w-[250px]">
             <div className="relative">
               <input
                 type="text"

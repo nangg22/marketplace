@@ -109,15 +109,33 @@ export default async function SellerProductsPage() {
                     </div>
                   )}
 
-                  {/* Badge status aktif/nonaktif */}
-                  <div className="absolute top-2 left-2">
+                  {/* Badge kondisi preloved */}
+                  <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                     {item.isAvailable ? (
-                      <span className="neo-sticker bg-green-400 text-xs text-white px-2 py-1">
+                      <span className="neo-sticker bg-[var(--neo-green)] text-white text-[9px] px-2 py-0.5 border-[2px] border-[var(--neo-black)]">
                         ✅ Aktif
                       </span>
                     ) : (
-                      <span className="neo-sticker bg-gray-400 text-xs text-white px-2 py-1">
+                      <span className="neo-sticker bg-gray-400 text-white text-[9px] px-2 py-0.5 border-[2px] border-[var(--neo-black)]">
                         ⏸️ Nonaktif
+                      </span>
+                    )}
+                  </div>
+                  <div className="absolute top-2 left-2 flex flex-col gap-1">
+                    {item.condition && (
+                      <span className={`neo-sticker text-[9px] px-2 py-0.5 border-[2px] border-[var(--neo-black)] ${
+                        item.condition === 'baru' ? 'bg-[var(--neo-accent)] text-[var(--neo-black)]' :
+                        item.condition === 'like_new' ? 'bg-[#7B4AE2] text-white' :
+                        item.condition === 'minus_ringan' ? 'bg-[#FF6B35] text-white' : 'bg-[var(--neo-black)] text-white'
+                      }`}>
+                        {item.condition === 'baru' ? '✨ Baru' :
+                         item.condition === 'like_new' ? '💎 Like New' :
+                         item.condition === 'minus_ringan' ? '⚠️ Minus Ringan' : '💀 Minus Berat'}
+                      </span>
+                    )}
+                    {item.isNegotiable && (
+                      <span className="neo-sticker bg-[var(--neo-pink)] text-white text-[9px] px-2 py-0.5 border-[2px] border-[var(--neo-black)]">
+                        🤝 Nego
                       </span>
                     )}
                   </div>

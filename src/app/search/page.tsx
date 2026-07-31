@@ -36,7 +36,11 @@ export default async function SearchPage({
       price: products.price,
       imageUrl: products.imageUrl,
       category: products.category,
+      condition: products.condition,
+      isNegotiable: products.isNegotiable,
+      sellerId: products.sellerId,
       sellerName: users.name,
+      stock: products.stock,
     })
     .from(products)
     .leftJoin(users, eq(products.sellerId, users.id));

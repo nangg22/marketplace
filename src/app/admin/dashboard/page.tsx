@@ -42,7 +42,7 @@ export default async function AdminDashboardPage() {
             </span>
             Admin Dashboard
           </h1>
-          <p className="font-semibold opacity-60 text-lg">Pusat kontrol penuh MallPedia.</p>
+          <p className="font-semibold opacity-60 text-lg">Pusat kontrol penuh LakuLagi.</p>
         </div>
 
         {/* Stats utama — hardcoded class agar Tailwind tidak purge */}

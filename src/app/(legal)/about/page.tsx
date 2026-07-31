@@ -3,8 +3,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Tentang Kami | MallPedia",
-  description: "Kenali lebih dekat MallPedia, marketplace yang menghubungkan penjual dan pembeli di seluruh Indonesia.",
+  title: "Tentang Kami | LakuLagi",
+  description: "Kenali lebih dekat LakuLagi, marketplace yang menghubungkan penjual dan pembeli di seluruh Indonesia.",
 };
 
 export default function AboutPage() {
@@ -13,11 +13,11 @@ export default function AboutPage() {
       <Navbar />
       <main className="flex-grow max-w-3xl mx-auto py-12 px-4 w-full">
         <h1 className="text-4xl font-extrabold mb-6 inline-block bg-[var(--neo-primary)] px-3 py-1 border-[3px] border-[var(--neo-black)] shadow-[var(--neo-shadow-sm)] rotate-[-1deg]">
-          Tentang MallPedia
+          Tentang LakuLagi
         </h1>
         <div className="neo-card p-6 bg-[var(--neo-white)]">
           <p className="font-semibold text-lg leading-relaxed mb-4">
-            MallPedia adalah platform marketplace yang mempertemukan penjual dan pembeli
+            LakuLagi adalah platform marketplace yang mempertemukan penjual dan pembeli
             secara langsung, dengan fokus pada kemudahan transaksi dan keamanan berbelanja online.
           </p>
           <p className="font-medium text-gray-700 leading-relaxed">

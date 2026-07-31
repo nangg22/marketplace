@@ -175,7 +175,7 @@ export default function SellerPaymentPage() {
                 <li>Pencairan dilakukan setelah pesanan berstatus &quot;Selesai&quot;</li>
                 <li>Proses transfer 1–3 hari kerja</li>
                 <li>Minimum pencairan Rp 50.000</li>
-                <li>Biaya administrasi transfer ditanggung MallPedia</li>
+                <li>Biaya administrasi transfer ditanggung LakuLagi</li>
               </ul>
             </div>
 
