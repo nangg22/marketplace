@@ -33,6 +33,7 @@ const Navbar = () => {
       { href: '/profile', icon: '👤', label: 'Profil & Biodata' },
       { href: '/customer/orders', icon: '🧾', label: 'Riwayat Pesanan' },
       { href: '/customer/cart', icon: '🛒', label: 'Keranjang' },
+      { href: '/groups', icon: '👥', label: 'Komunitas' },
       { href: '/chat', icon: '✉️', label: 'Pesan' },
     ],
     seller: [

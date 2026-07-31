@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
+import GroupChat from '@/components/GroupChat';
 import { db } from '@/lib/db';
 import { products, users } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -218,42 +219,21 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           )}
         </div>
 
-        {/* === POSTINGAN KOMUNITAS (PREVIEW) === */}
-        <div className="mt-12 animate-slide-up stagger-2">
+        {/* === DISKUSI KOMUNITAS REALTIME === */}
+        <div className="mt-10 animate-slide-up stagger-2">
           <div className="flex items-center justify-between mb-5 border-b-[3px] border-[var(--neo-black)] pb-3">
             <h2 className="text-xl font-extrabold flex items-center gap-2">
               <span className="bg-[var(--neo-primary)] text-white px-2 py-1 rounded-lg text-xs">💬</span>
-              Preview Obrolan Komunitas
+              Diskusi Komunitas
             </h2>
-            <Link href="/explore/create" className="neo-btn neo-btn-outline text-xs py-1.5 px-3">
-              Bikin Postingan
-            </Link>
+            <span className="text-xs font-bold opacity-50">Pesan otomatis diperbarui</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[1, 2].map((postNum) => (
-              <div key={postNum} className="neo-card p-5 hover-lift">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full border-[2px] border-[var(--neo-black)] bg-[var(--neo-pink)] flex items-center justify-center font-bold text-white">
-                    {postNum === 1 ? 'A' : 'B'}
-                  </div>
-                  <div>
-                    <div className="font-extrabold text-sm">{postNum === 1 ? 'Andi Susanto' : 'Budi Santoso'}</div>
-                    <div className="text-[10px] opacity-60 font-bold">2 jam yang lalu</div>
-                  </div>
-                </div>
-                <p className="text-sm font-medium opacity-80 mb-4 line-clamp-3">
-                  {postNum === 1
-                    ? `Ada yang pernah beli ${group.category.toLowerCase()} second dari akun "Toko Amanah"? Rekomendasi dong, lagi nyari yang mulus nih. Harganya masuk akal ga ya?`
-                    : `Tips buat yang mau COD barang ${group.category.toLowerCase()}: pastikan cek fisik langsung pas ketemu, jangan cuma dari foto. Kemarin hampir ketipu untung teliti!`}
-                </p>
-                <div className="flex gap-4 pt-3 border-t-[2px] border-dashed border-[var(--neo-black)] border-opacity-20 text-xs font-bold">
-                  <button className="flex items-center gap-1 hover:text-[var(--neo-pink)]">❤️ 12 Suka</button>
-                  <button className="flex items-center gap-1 hover:text-[var(--neo-primary)]">💬 4 Komentar</button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <GroupChat
+            groupId={group.id}
+            groupName={group.name}
+            groupColor={group.color}
+          />
         </div>
 
       </main>

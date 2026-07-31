@@ -317,6 +317,15 @@ export const groupMembers = pgTable('group_members', {
   uniqueMember: unique().on(table.groupId, table.userId),
 }));
 
+// Tabel Pesan Grup (Diskusi Komunitas Realtime)
+export const groupMessages = pgTable('group_messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  groupId: varchar('group_id', { length: 100 }).notNull(), // pakai string ID karena grup masih statis
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  text: text('text').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // -----------------------------------------------------------------------------
 // NEW TABLES FOR CHAT & NEGOTIATION
 // -----------------------------------------------------------------------------
