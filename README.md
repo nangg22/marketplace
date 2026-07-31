@@ -1,3 +1,6 @@
+<img width="1408" height="768" alt="Gemini_Generated_Image_v8zv9bv8zv9bv8zv" src="https://github.com/user-attachments/assets/44c60343-cb15-403a-8de9-a04a30478a33" />
+
+
 # LakuLagi — Marketplace Preloved Terpercaya
 
 > Platform jual beli barang preloved berbasis web yang modern, aman, dan mudah digunakan.
