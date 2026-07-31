@@ -31,7 +31,8 @@ export default function PostCard({ post }: { post: any }) {
   };
 
   return (
-    <div className="neo-card p-0 overflow-hidden mb-4 break-inside-avoid shadow-[4px_4px_0px_var(--neo-black)] flex flex-col group cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0px_var(--neo-black)] transition-all">
+    <Link href={`/explore/${post.id}`} className="block mb-4 break-inside-avoid">
+    <div className="neo-card p-0 overflow-hidden shadow-[4px_4px_0px_var(--neo-black)] flex flex-col group cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0px_var(--neo-black)] transition-all">
       {/* Gambar Postingan */}
       {post.imageUrl && (
         <div className="relative w-full">
@@ -116,5 +117,6 @@ export default function PostCard({ post }: { post: any }) {
         </p>
       </div>
     </div>
+    </Link>
   );
 }
