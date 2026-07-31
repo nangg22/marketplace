@@ -67,7 +67,12 @@ export default function GroupChat({ groupId, groupName, groupColor }: Props) {
     if (!res.ok) return;
     const data = await res.json();
     if (data.messages.length > 0) {
-      setMessages((prev) => [...prev, ...data.messages]);
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const newOnly = data.messages.filter((m: Message) => !existingIds.has(m.id));
+        if (newOnly.length === 0) return prev;
+        return [...prev, ...newOnly];
+      });
       lastTimestampRef.current = data.messages[data.messages.length - 1].createdAt;
     }
   }, [groupId]);

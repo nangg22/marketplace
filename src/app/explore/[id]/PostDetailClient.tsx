@@ -56,7 +56,6 @@ export default function PostDetailClient({
   // Polling komentar baru setiap 3 detik
   const pollComments = useCallback(async () => {
     if (!lastTimestampRef.current) {
-      // Kalau belum ada komentar, ambil semua
       const res = await fetch(`/api/explore/${postId}/comments`);
       if (!res.ok) return;
       const data = await res.json();
@@ -73,7 +72,12 @@ export default function PostDetailClient({
     if (!res.ok) return;
     const data = await res.json();
     if (data.comments.length > 0) {
-      setComments((prev) => [...prev, ...data.comments]);
+      setComments((prev) => {
+        const existingIds = new Set(prev.map((c) => c.id));
+        const newOnly = data.comments.filter((c: Comment) => !existingIds.has(c.id));
+        if (newOnly.length === 0) return prev;
+        return [...prev, ...newOnly];
+      });
       lastTimestampRef.current = data.comments[data.comments.length - 1].createdAt;
     }
   }, [postId]);
