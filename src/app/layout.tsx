@@ -21,11 +21,16 @@ export const metadata: Metadata = {
   creator: "LakuLagi",
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
       { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
     ],
-    apple: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    other: [
+      { rel: "manifest", url: "/site.webmanifest" },
+    ],
   },
   openGraph: {
     type: "website",
@@ -33,11 +38,13 @@ export const metadata: Metadata = {
     siteName: "LakuLagi",
     title: "LakuLagi — Marketplace Preloved Terpercaya",
     description: "Jual beli barang preloved berkualitas di LakuLagi.",
+    images: ["/web-app-manifest-512x512.png"],
   },
   twitter: {
     card: "summary",
     title: "LakuLagi — Marketplace Preloved Terpercaya",
     description: "Jual beli barang preloved berkualitas di LakuLagi.",
+    images: ["/web-app-manifest-512x512.png"],
   },
 };
 
@@ -49,9 +56,11 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${spaceGrotesk.variable} ${spaceGrotesk.className}`}>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="48x48" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
       </head>
       <body className="min-h-screen flex flex-col">
         <Providers>
