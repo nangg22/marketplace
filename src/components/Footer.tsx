@@ -23,18 +23,6 @@ export default function Footer() {
           <Link href="/return-policy" className="hover:underline hover:text-[var(--neo-primary)]">Kebijakan Retur</Link>
           <Link href="/faq" className="hover:underline hover:text-[var(--neo-primary)]">FAQ</Link>
         </div>
-
-        <div className="flex justify-center gap-3">
-          <span className="neo-badge bg-[var(--neo-secondary)] text-white border-white/30 hover-wiggle cursor-default">
-            Next.js
-          </span>
-          <span className="neo-badge bg-[var(--neo-green)] text-[var(--neo-black)] border-white/30 hover-wiggle cursor-default">
-            Neon DB
-          </span>
-          <span className="neo-badge bg-[var(--neo-accent)] text-[var(--neo-black)] border-white/30 hover-wiggle cursor-default">
-            Drizzle ORM
-          </span>
-        </div>
       </div>
     </footer>
   );

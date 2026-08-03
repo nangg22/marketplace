@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { users, products, orders, orderItems } from '@/lib/schema';
+import { users, products, orders, orderItems, notifications } from '@/lib/schema';
 import { requireRole } from '@/lib/auth-guard';
 import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -140,7 +140,8 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
 export async function deleteOrder(orderId: string) {
   await assertAdmin();
-  // Hapus orderItems dulu sebelum order (FK constraint)
+  // Hapus notifications dan orderItems dulu sebelum order (FK constraint)
+  await db.delete(notifications).where(eq(notifications.orderId, orderId));
   await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
   await db.delete(orders).where(eq(orders.id, orderId));
   revalidatePath('/admin/transactions');
