@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useCartStore } from '@/lib/store';
 import { useSession, signOut } from 'next-auth/react';
+import dynamic from 'next/dynamic';
+
+// Lazy load agar tidak error SSR
+const NotificationBell = dynamic(() => import('@/components/NotificationBell'), { ssr: false });
 
 const Navbar = () => {
   const cartItems = useCartStore((state) => state.items);
@@ -123,6 +127,9 @@ const Navbar = () => {
                 </span>
               )}
             </Link>
+
+            {/* Notification Bell - hanya tampil saat login */}
+            {session && <NotificationBell />}
 
             <div className="h-7 w-[2px] bg-[var(--neo-black)] opacity-20" />
 

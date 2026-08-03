@@ -10,6 +10,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://lakulagi.vercel.app'),
   title: {
     default: "LakuLagi — Marketplace Preloved Terpercaya",
     template: "%s | LakuLagi",

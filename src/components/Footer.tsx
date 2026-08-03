@@ -13,7 +13,7 @@ export default function Footer() {
           </span>
         </div>
         <p className="text-sm opacity-70 font-medium mb-6">
-          LakuLagi — Marketplace Preloved Terpercaya © 2026
+          LakuLagi — Marketplace Preloved Terpercaya © {new Date().getFullYear()}
         </p>
 
         <div className="flex flex-wrap justify-center gap-4 mb-8 text-sm font-bold">

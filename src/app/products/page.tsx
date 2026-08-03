@@ -53,6 +53,7 @@ export default async function AllProductsPage({
       isNegotiable: products.isNegotiable,
       sellerId: products.sellerId,
       sellerName: users.name,
+      sellerStoreName: users.storeName,
       stock: products.stock,
     })
     .from(products)
@@ -89,7 +90,10 @@ export default async function AllProductsPage({
     query = query.orderBy(desc(products.createdAt));
   }
 
-  const allProducts = await query;
+  const allProducts = (await query).map(p => ({
+    ...p,
+    sellerName: p.sellerStoreName || p.sellerName,
+  }));
 
   const activeCategoryLabel =
     CATEGORIES.find((c) => c.value === activeCategory)?.label || 'Semua';

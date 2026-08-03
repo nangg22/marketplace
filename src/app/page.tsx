@@ -19,6 +19,7 @@ export default async function HomePage() {
       isNegotiable: products.isNegotiable,
       sellerId: products.sellerId,
       sellerName: users.name,
+      sellerStoreName: users.storeName,
       stock: products.stock,
     })
     .from(products)
@@ -33,7 +34,9 @@ export default async function HomePage() {
     condition: p.condition,
     isNegotiable: p.isNegotiable,
     sellerId: p.sellerId,
-    sellerName: p.sellerName,
+    // Prioritaskan storeName jika ada, fallback ke nama asli
+    sellerName: p.sellerStoreName || p.sellerName,
+    stock: p.stock,
   }));
 
   const session = await getServerSession(authOptions);
