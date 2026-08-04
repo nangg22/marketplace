@@ -139,3 +139,30 @@ export async function markShipped(orderId: string) {
   revalidatePath('/customer/orders');
   return { success: true };
 }
+
+export async function markCompleted(orderId: string) {
+  const auth = await requireRole(['seller']) as any;
+  if (!auth.ok) return { success: false, error: 'Unauthorized' };
+
+  const sellerId = auth.session?.user?.id;
+
+  const isOwner = await verifySellerOwnsOrder(sellerId, orderId);
+  if (!isOwner) return { success: false, error: 'Forbidden: bukan pesanan Anda' };
+
+  const [order] = await db
+    .select({ status: orders.status })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  if (order?.status !== 'shipped') {
+    return { success: false, error: 'Pesanan belum dikirim.' };
+  }
+
+  await updateOrderStatus(orderId, 'completed', 'Pesanan selesai dikonfirmasi penjual');
+
+  revalidatePath('/seller/orders');
+  revalidatePath('/seller/dashboard');
+  revalidatePath('/customer/orders');
+  return { success: true };
+}

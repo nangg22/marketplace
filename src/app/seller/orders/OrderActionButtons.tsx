@@ -174,7 +174,27 @@ export function OrderActionButtons({ orderId, currentStatus, paymentMethod }: Or
 
   // Status shipped tapi bukan COD — seller sudah tidak punya aksi
   if (currentStatus === 'shipped') {
-    return null;
+    return (
+      <div className="mt-4 p-4 bg-purple-50 border-[2px] border-purple-300 rounded-xl flex items-center justify-between gap-4">
+        <div>
+          <p className="font-bold text-sm">🚚 Barang sedang dalam pengiriman</p>
+          <p className="text-xs opacity-60 font-medium mt-0.5">Tandai selesai setelah pembeli konfirmasi penerimaan.</p>
+        </div>
+        <button
+          onClick={async () => {
+            setIsLoading('approve');
+            const { markCompleted } = await import('./actions');
+            const result = await markCompleted(orderId);
+            setIsLoading(null);
+            if (result?.success) router.refresh();
+          }}
+          disabled={isLoading !== null}
+          className="neo-btn bg-green-500 text-white border-[var(--neo-black)] text-sm py-2 px-4 font-bold disabled:opacity-50 shrink-0"
+        >
+          {isLoading === 'approve' ? '⏳...' : '✅ Selesai'}
+        </button>
+      </div>
+    );
   }
 
   // Default fallback

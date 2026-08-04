@@ -217,6 +217,9 @@ const Navbar = () => {
               )}
             </Link>
 
+            {/* Notification Bell mobile */}
+            {session && <NotificationBell />}
+
             {session ? (
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
