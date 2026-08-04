@@ -4,6 +4,8 @@ import Footer from '@/components/Footer';
 import ProductsCard from '@/components/ProductCard';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Barang Favorit | LakuLagi',
 };

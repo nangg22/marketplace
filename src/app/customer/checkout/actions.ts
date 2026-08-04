@@ -364,7 +364,12 @@ export async function createOrder(
   // === SIMULASI PEMBAYARAN ===
   // Untuk QRIS dan Kartu: redirect ke halaman simulasi yang akan auto-complete
   if (['qris', 'credit'].includes(paymentMethod)) {
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    // Deteksi base URL secara otomatis — works di localhost maupun Vercel
+    const { headers } = await import('next/headers');
+    const headersList = await headers();
+    const host = headersList.get('host') || 'localhost:3000';
+    const proto = headersList.get('x-forwarded-proto') || 'http';
+    const baseUrl = `${proto}://${host}`;
     const redirectUrl = `${baseUrl}/api/payment/simulate?order_id=${newOrder.id}&amount=${serverTotalAmount}`;
 
     return {
