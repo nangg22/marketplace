@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { products, users, productImages } from '@/lib/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and, ne, or, desc } from 'drizzle-orm';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -10,6 +10,7 @@ import ReviewList from '@/components/ReviewList';
 import StarRating from '@/components/StarRating';
 import ProductGallery from '@/components/ProductGallery';
 import WishlistButton from '@/components/WishlistButton';
+import ProductCard from '@/components/ProductCard';
 import type { Metadata } from 'next';
 
 const CONDITION_MAP: Record<string, { emoji: string; label: string; desc: string; color: string; textColor: string }> = {
@@ -161,6 +162,78 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const formatRupiah = (price: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
+
+  // === PRODUK TERKAIT ===
+  type RelatedProduct = {
+    id: string;
+    name: string;
+    price: number;
+    imageUrl: string | null;
+    condition: 'baru' | 'like_new' | 'minus_ringan' | 'minus_berat';
+    isNegotiable: boolean;
+    sellerId: string;
+    stock: number;
+    sellerName?: string | null;
+  };
+
+  let relatedFromSeller: RelatedProduct[] = [];
+  let relatedFromCategory: RelatedProduct[] = [];
+
+  if (product) {
+    const [sellerProducts, categoryProducts] = await Promise.all([
+      db
+        .select({
+          id: products.id,
+          name: products.name,
+          price: products.price,
+          imageUrl: products.imageUrl,
+          condition: products.condition,
+          isNegotiable: products.isNegotiable,
+          sellerId: products.sellerId,
+          stock: products.stock,
+        })
+        .from(products)
+        .where(
+          and(
+            eq(products.sellerId, product.sellerId),
+            ne(products.id, productId),
+            eq(products.isSuspended, false),
+            eq(products.isAvailable, true)
+          )
+        )
+        .orderBy(desc(products.createdAt))
+        .limit(4),
+
+      db
+        .select({
+          id: products.id,
+          name: products.name,
+          price: products.price,
+          imageUrl: products.imageUrl,
+          condition: products.condition,
+          isNegotiable: products.isNegotiable,
+          sellerId: products.sellerId,
+          stock: products.stock,
+        })
+        .from(products)
+        .where(
+          and(
+            eq(products.category, product.category),
+            ne(products.id, productId),
+            ne(products.sellerId, product.sellerId), // hindari duplikat dari seller
+            eq(products.isSuspended, false),
+            eq(products.isAvailable, true)
+          )
+        )
+        .orderBy(desc(products.createdAt))
+        .limit(4),
+    ]);
+
+    relatedFromSeller = sellerProducts;
+    relatedFromCategory = categoryProducts;
+  }
+
+  const sellerDisplayName = product?.sellerStoreName || product?.sellerName || 'Toko Penjual';
 
   if (!product) {
     return (
@@ -403,6 +476,66 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <ReviewList reviews={reviewsData} />
           </div>
         </div>
+
+        {/* ===== PRODUK TERKAIT ===== */}
+        {(relatedFromSeller.length > 0 || relatedFromCategory.length > 0) && (
+          <div className="mt-12 animate-slide-up stagger-4">
+
+            {/* Produk lain dari seller ini */}
+            {relatedFromSeller.length > 0 && (
+              <div className="mb-10">
+                <div className="flex items-center justify-between mb-5 border-b-[3px] border-[var(--neo-black)] pb-3">
+                  <h2 className="text-xl font-extrabold flex items-center gap-2">
+                    <span className="bg-[var(--neo-secondary)] text-white px-2 py-1 rounded-lg text-xs border-[2px] border-[var(--neo-black)]">🏪</span>
+                    Produk Lain dari <span className="text-[var(--neo-secondary)]">{sellerDisplayName}</span>
+                  </h2>
+                  <Link
+                    href={`/profile/${product.sellerId}`}
+                    className="neo-btn neo-btn-outline text-xs py-1.5 px-3 font-bold"
+                  >
+                    Lihat Toko →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {relatedFromSeller.map((p, i) => (
+                    <ProductCard
+                      key={p.id}
+                      product={{ ...p, sellerName: sellerDisplayName }}
+                      index={i}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Produk serupa dari kategori yang sama */}
+            {relatedFromCategory.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-5 border-b-[3px] border-[var(--neo-black)] pb-3">
+                  <h2 className="text-xl font-extrabold flex items-center gap-2">
+                    <span className="bg-[var(--neo-primary)] text-white px-2 py-1 rounded-lg text-xs border-[2px] border-[var(--neo-black)]">✨</span>
+                    Produk Serupa — {product.category}
+                  </h2>
+                  <Link
+                    href={`/products?category=${encodeURIComponent(product.category)}`}
+                    className="neo-btn neo-btn-outline text-xs py-1.5 px-3 font-bold"
+                  >
+                    Lihat Semua →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {relatedFromCategory.map((p, i) => (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      index={i}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
       </main>
 
