@@ -23,7 +23,7 @@ export function getCategoryIcon(slug: string) {
 export default async function AllProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; sort?: string; q?: string; minPrice?: string; maxPrice?: string; condition?: string; nego?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; q?: string; minPrice?: string; maxPrice?: string; condition?: string; nego?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const activeCategory = params.category || '';
@@ -33,6 +33,8 @@ export default async function AllProductsPage({
   const maxPrice = params.maxPrice;
   const condition = params.condition;
   const nego = params.nego;
+  const page = Math.max(1, parseInt(params.page || '1'));
+  const PAGE_SIZE = 20;
 
   // Ambil kategori dari DB
   const dbCategories = await db.select().from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.sortOrder), asc(categories.name));
@@ -90,7 +92,18 @@ export default async function AllProductsPage({
     query = query.orderBy(desc(products.createdAt));
   }
 
-  const allProducts = (await query).map(p => ({
+  // Hitung total untuk pagination
+  const { count } = await import('drizzle-orm');
+  const countQuery = db
+    .select({ total: count() })
+    .from(products)
+    .where(and(...conditions));
+  const [{ total }] = await countQuery;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Query dengan LIMIT + OFFSET
+  const allProductsRaw = await query.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE);
+  const allProducts = allProductsRaw.map(p => ({
     ...p,
     sellerName: p.sellerStoreName || p.sellerName,
   }));
@@ -239,6 +252,82 @@ export default async function AllProductsPage({
                   {allProducts.map((product, i) => (
                     <ProductsCard key={product.id} product={product} index={i} />
                   ))}
+                </div>
+              )}
+
+              {/* ===== PAGINATION ===== */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
+                  {/* Prev */}
+                  {page > 1 && (
+                    <Link
+                      href={`/products?${new URLSearchParams({
+                        ...(activeCategory && { category: activeCategory }),
+                        ...(sort !== 'newest' && { sort }),
+                        ...(q && { q }),
+                        ...(minPrice && { minPrice }),
+                        ...(maxPrice && { maxPrice }),
+                        page: String(page - 1),
+                      }).toString()}`}
+                      className="neo-btn neo-btn-outline text-sm py-2 px-4 font-bold"
+                    >
+                      ← Sebelumnya
+                    </Link>
+                  )}
+
+                  {/* Page numbers */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...');
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === '...' ? (
+                        <span key={`ellipsis-${i}`} className="px-2 font-bold opacity-40">…</span>
+                      ) : (
+                        <Link
+                          key={p}
+                          href={`/products?${new URLSearchParams({
+                            ...(activeCategory && { category: activeCategory }),
+                            ...(sort !== 'newest' && { sort }),
+                            ...(q && { q }),
+                            ...(minPrice && { minPrice }),
+                            ...(maxPrice && { maxPrice }),
+                            page: String(p),
+                          }).toString()}`}
+                          className={`w-9 h-9 flex items-center justify-center border-[2px] border-[var(--neo-black)] rounded-lg text-sm font-extrabold shadow-[2px_2px_0px_var(--neo-black)] transition-colors ${
+                            p === page
+                              ? 'bg-[var(--neo-primary)] text-white'
+                              : 'bg-white hover:bg-[var(--neo-gray)]'
+                          }`}
+                        >
+                          {p}
+                        </Link>
+                      )
+                    )}
+
+                  {/* Next */}
+                  {page < totalPages && (
+                    <Link
+                      href={`/products?${new URLSearchParams({
+                        ...(activeCategory && { category: activeCategory }),
+                        ...(sort !== 'newest' && { sort }),
+                        ...(q && { q }),
+                        ...(minPrice && { minPrice }),
+                        ...(maxPrice && { maxPrice }),
+                        page: String(page + 1),
+                      }).toString()}`}
+                      className="neo-btn neo-btn-outline text-sm py-2 px-4 font-bold"
+                    >
+                      Berikutnya →
+                    </Link>
+                  )}
+
+                  <span className="text-xs font-bold opacity-50 w-full text-center mt-1">
+                    Halaman {page} dari {totalPages} ({total} produk)
+                  </span>
                 </div>
               )}
             </div>

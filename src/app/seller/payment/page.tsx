@@ -204,7 +204,11 @@ export default function SellerPaymentPage() {
               </div>
               <div className="flex justify-between items-center py-2 border-b-[2px] border-dashed border-[var(--neo-black)]/10">
                 <span className="font-bold opacity-60">Nomor Rekening</span>
-                <span className="font-extrabold font-mono tracking-wider">{form.bankAccountNumber}</span>
+                <span className="font-extrabold font-mono tracking-wider">
+                  {/* Mask: tampilkan 4 digit terakhir saja */}
+                  {'•'.repeat(Math.max(0, form.bankAccountNumber.length - 4))}
+                  {form.bankAccountNumber.slice(-4)}
+                </span>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="font-bold opacity-60">Atas Nama</span>

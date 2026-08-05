@@ -179,9 +179,17 @@ function LoginContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-[var(--neo-black)] mb-1.5">
-                🔒 Password
-              </label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-sm font-bold text-[var(--neo-black)]">
+                  🔒 Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-bold text-[var(--neo-primary)] hover:underline opacity-70 hover:opacity-100"
+                >
+                  Lupa password?
+                </Link>
+              </div>
               <input
                 name="password"
                 type="password"

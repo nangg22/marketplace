@@ -26,18 +26,22 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
   async function handleEdit(formData: FormData) {
     'use server';
-    const name = formData.get('name') as string;
+    const name = (formData.get('name') as string)?.trim();
     const price = parseInt(formData.get('price') as string);
     const stock = parseInt(formData.get('stock') as string);
     const description = formData.get('description') as string;
     const imageUrl = formData.get('imageUrl') as string;
     const category = (formData.get('category') as string) || 'Lainnya';
-    // ✅ Checkbox: ada di formData = true, tidak ada = false
     const isAvailable = formData.get('isAvailable') === 'on';
-    
-    // Nego & Kondisi
     const isNegotiable = formData.get('isNegotiable') === 'on';
     const condition = (formData.get('condition') as 'baru' | 'like_new' | 'minus_ringan' | 'minus_berat') || 'baru';
+
+    // Validasi server-side
+    if (!name || name.length < 3) throw new Error('Nama produk minimal 3 karakter.');
+    if (!Number.isFinite(price) || price < 100) throw new Error('Harga minimal Rp 100.');
+    if (price > 500_000_000) throw new Error('Harga maksimal Rp 500.000.000.');
+    if (!Number.isFinite(stock) || stock < 0) throw new Error('Stok tidak boleh negatif.');
+    if (stock > 10_000) throw new Error('Stok maksimal 10.000.');
 
     const actionAuth = await requireRole(['seller']);
     if (!actionAuth.ok) return;
