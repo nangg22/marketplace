@@ -111,20 +111,29 @@ export default async function HomePage() {
                   📸 Jual Barangmu
                 </Link>
               </div>
-              <div className="flex items-center gap-6 mt-6">
-                <div className="text-center">
-                  <div className="text-2xl font-extrabold">{realProducts.length}+</div>
-                  <div className="text-xs font-bold opacity-60">Barang Aktif</div>
+              <div className="flex items-center gap-5 mt-6 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">📦</span>
+                  <div>
+                    <div className="text-xl font-extrabold">12+</div>
+                    <div className="text-xs font-bold opacity-60">Kategori Produk</div>
+                  </div>
                 </div>
                 <div className="w-px h-8 bg-[var(--neo-black)] opacity-20" />
-                <div className="text-center">
-                  <div className="text-2xl font-extrabold">100%</div>
-                  <div className="text-xs font-bold opacity-60">Aman Transaksi</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🛡️</span>
+                  <div>
+                    <div className="text-xl font-extrabold">100%</div>
+                    <div className="text-xs font-bold opacity-60">Transaksi Aman</div>
+                  </div>
                 </div>
                 <div className="w-px h-8 bg-[var(--neo-black)] opacity-20" />
-                <div className="text-center">
-                  <div className="text-2xl font-extrabold">🤝</div>
-                  <div className="text-xs font-bold opacity-60">Bisa Nego</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🤝</span>
+                  <div>
+                    <div className="text-xl font-extrabold">Gratis</div>
+                    <div className="text-xs font-bold opacity-60">Daftar & Jualan</div>
+                  </div>
                 </div>
               </div>
             </div>

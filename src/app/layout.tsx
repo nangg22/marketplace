@@ -58,25 +58,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${spaceGrotesk.variable} ${spaceGrotesk.className}`} suppressHydrationWarning>
+    <html lang="id" className={`${spaceGrotesk.variable} ${spaceGrotesk.className}`}>
       <head>
-        {/* Script inline: terapkan tema SEBELUM render agar tidak ada flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var saved = localStorage.getItem('lakulagi-theme');
-                  if (saved === 'dark') {
-                    document.documentElement.classList.add('dark');
-                  } else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    document.documentElement.classList.add('dark');
-                  }
-                } catch(e) {}
-              })();
-            `,
-          }}
-        />
         <link rel="icon" href="/favicon.ico" sizes="48x48" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />

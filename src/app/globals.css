@@ -33,36 +33,6 @@
   --foreground: var(--neo-black);
 }
 
-/* ============================================
-   🌙 DARK MODE
-   ============================================ */
-.dark {
-  --neo-bg: #0F0F1A;
-  --neo-bg-alt: #1A1A2E;
-  --neo-primary: #FF6B35;
-  --neo-secondary: #9B6EFF;
-  --neo-accent: #FFD23F;
-  --neo-pink: #FF4081;
-  --neo-green: #00E676;
-  --neo-blue: #448AFF;
-  --neo-black: #E8E8FF;
-  --neo-white: #1E1E32;
-  --neo-gray: #252538;
-
-  --neo-shadow: 4px 4px 0px #FFD23F;
-  --neo-shadow-lg: 6px 6px 0px #FFD23F;
-  --neo-shadow-sm: 2px 2px 0px #FFD23F;
-  --neo-border: 3px solid #E8E8FF;
-
-  --background: var(--neo-bg);
-  --foreground: var(--neo-black);
-}
-
-/* Transisi halus saat ganti tema */
-*, *::before, *::after {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

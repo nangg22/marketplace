@@ -7,7 +7,6 @@ import { useSession, signOut } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 
 const NotificationBell = dynamic(() => import('@/components/NotificationBell'), { ssr: false });
-const DarkModeToggle = dynamic(() => import('@/components/DarkModeToggle'), { ssr: false });
 
 const Navbar = () => {
   const cartItems = useCartStore((state) => state.items);
@@ -118,9 +117,6 @@ const Navbar = () => {
 
           {/* ===== RIGHT DESKTOP ===== */}
           <div className="hidden md:flex items-center gap-2">
-            {/* Dark Mode Toggle */}
-            <DarkModeToggle />
-
             {/* Cart */}
             <Link href="/customer/cart" className="relative neo-btn neo-btn-outline py-2 px-3">
               <span className="text-lg">🛒</span>
@@ -211,9 +207,6 @@ const Navbar = () => {
 
           {/* ===== MOBILE RIGHT: cart + hamburger ===== */}
           <div className="flex md:hidden items-center gap-2">
-            {/* Dark Mode Toggle mobile */}
-            <DarkModeToggle />
-
             <Link href="/customer/cart" className="relative neo-btn neo-btn-outline py-1.5 px-2.5">
               <span className="text-base">🛒</span>
               {totalItems > 0 && (
