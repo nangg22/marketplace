@@ -12,7 +12,7 @@ export default function BackButton() {
   return (
     <button
       onClick={() => router.back()}
-      className="fixed bottom-6 left-6 z-[100] md:bottom-10 md:left-10 neo-btn bg-[var(--neo-accent)] text-[var(--neo-black)] border-[3px] border-[var(--neo-black)] rounded-full w-14 h-14 p-0 flex items-center justify-center shadow-[4px_4px_0px_var(--neo-black)] hover-wiggle"
+      className="hidden md:flex fixed bottom-10 left-10 z-[100] neo-btn bg-[var(--neo-accent)] text-[var(--neo-black)] border-[3px] border-[var(--neo-black)] rounded-full w-14 h-14 p-0 items-center justify-center shadow-[4px_4px_0px_var(--neo-black)] hover-wiggle"
       aria-label="Kembali"
     >
       <span className="text-3xl font-extrabold translate-y-[-2px]">🔙</span>
